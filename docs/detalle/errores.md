@@ -14,7 +14,7 @@ HTTP API no permite personalizar las respuestas que genera el propio gateway, y 
 | HTTP | `code` | Origen | Cuándo ocurre | Qué hace el cliente |
 |---|---|---|---|---|
 | 401 | *(sin código)* | API Gateway | Falta la cabecera `x-api-key`; no se invoca el authorizer. | Pedir la llave. |
-| 403 | *(sin código)* | API Gateway | La llave no es válida *(verificar el código en AWS)*. | Volver a pedir la llave. |
+| 403 | *(sin código)* | API Gateway | La llave no es válida. | Volver a pedir la llave. |
 | 400 | `INVALID_PARAMETER` | Función | Un parámetro no cumple su formato o rango (`limit=500`, `id=abc`). | Corregir la entrada. |
 | 400 | `INVALID_PAGINATION_TOKEN` | Función | `next_token` está mal formado. | Volver a la primera página. |
 | 404 | `ITEM_NOT_FOUND` | Función | El `id` no existe. | Mostrar "sin resultados". |

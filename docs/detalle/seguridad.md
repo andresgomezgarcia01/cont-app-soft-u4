@@ -8,7 +8,7 @@ Cada función tiene su rol, y los tres pueden escribir en su propio grupo de log
 
 | Rol | Permisos |
 |---|---|
-| `authorizer` | `ssm:GetParameter` solo sobre `/eds/dev/api-key`, y el descifrado que exija el parámetro *(verificar)*. |
+| `authorizer` | `ssm:GetParameter` solo sobre `/eds/dev/api-key`. |
 | `api` | `dynamodb:GetItem` y `dynamodb:Scan` sobre la tabla. Nada de escritura. |
 | `loader` | `s3:GetObject` en `incoming/*`; `s3:PutObject` en `reports/*`; `dynamodb:BatchWriteItem` sobre la tabla. |
 | `eds-github-deploy` | Usuario IAM sin acceso a la consola. GitHub Actions usa su llave, guardada en los secretos del Environment `aws`, limitado a la rama `main`. Permisos limitados a los servicios usados y, donde el ARN lo permite, a los nombres `eds-dev-*` y al parámetro `/eds/dev/*`, incluido el descifrado de ese parámetro. Sobre el bucket de estado `eds-tfstate-<account_id>` solo puede listar el bucket, leer y escribir objetos, y borrar únicamente el bloqueo `*.tflock`. Así, el usuario no puede modificar sus propios permisos ni borrar ese bucket de forma directa. |

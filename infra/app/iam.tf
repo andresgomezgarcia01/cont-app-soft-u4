@@ -22,7 +22,7 @@ locals {
         Resource = aws_dynamodb_table.items.arn
       },
     ]
-    # Sin KMS: se asume que la política de la clave aws/ssm autoriza el descifrado vía SSM; falta confirmarlo en AWS.
+    # Sin KMS: la política de la clave aws/ssm autoriza el descifrado vía SSM.
     authorizer = [{
       Effect   = "Allow"
       Action   = "ssm:GetParameter"

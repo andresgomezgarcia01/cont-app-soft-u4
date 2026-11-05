@@ -258,7 +258,7 @@ components:
           schema: { $ref: "#/components/schemas/GatewayError" }
           example: { message: Unauthorized }
     Forbidden:
-      description: La llave no es válida (formato del gateway). El código se confirma en AWS.
+      description: La llave no es válida (formato del gateway).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/GatewayError" }
