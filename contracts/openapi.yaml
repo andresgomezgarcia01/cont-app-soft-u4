@@ -1,0 +1,345 @@
+openapi: 3.1.0
+info:
+  title: Explorador de Datos Serverless API
+  version: 0.5.0
+  description: |
+    API de solo lectura sobre el dataset de volcanes cargado.
+    Todas las rutas exigen una llave válida en la cabecera x-api-key.
+    Los errores generados por la función usan el esquema ErrorResponse.
+    Los errores generados por API Gateway (401, 403, 404 de ruta, 429, 500, 503 y 504) usan GatewayError.
+    En los ejemplos, los textos largos están recortados.
+servers:
+  - url: https://{apiId}.execute-api.us-east-2.amazonaws.com
+    description: Etapa de API Gateway. La interfaz recibe esta URL como variable de entorno al compilar.
+    variables:
+      apiId:
+        default: abcdef123
+        description: Identificador de la API, salida de Terraform.
+security:
+  - ApiKeyHeader: []
+tags:
+  - name: items
+
+paths:
+  /items:
+    get:
+      tags: [items]
+      operationId: listItems
+      summary: Listado paginado de registros (sin orden garantizado)
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+        - name: next_token
+          in: query
+          description: Token opaco devuelto en page.next_token. No se debe construir ni interpretar.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Página de registros
+          headers:
+            x-request-id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, page]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Item" }
+                  page: { $ref: "#/components/schemas/Page" }
+              examples:
+                default:
+                  value:
+                    data:
+                      - &ruiz
+                        FID: Smithsonian_VOTW_Holocene_Volcanoes.fid--24b39c22_1a1a44e71a6_-6a0f
+                        Volcano_Number: 351020
+                        Volcano_Name: Ruiz, Nevado del
+                        Volcanic_Landform: Composite
+                        Primary_Volcano_Type: Stratovolcano
+                        Last_Eruption_Year: 2026
+                        Country: Colombia
+                        Region: South America Volcanic Regions
+                        Subregion: Northern Andean Volcanic Arc
+                        Geological_Summary: Nevado del Ruiz is a broad, glacier-covered volcano in central Colombia that covers more than 200 km2.
+                        Latitude: 4.892
+                        Longitude: -75.324
+                        Elevation: 5279
+                        Tectonic_Setting: Subduction zone / Continental crust (> 25 km)
+                        Geologic_Epoch: Holocene
+                        Evidence_Category: Eruption Observed
+                        Primary_Photo_Link: https://volcano.si.edu/gallery/photos/GVP-04359.jpg
+                        Primary_Photo_Caption: Nevado del Ruiz is a broad glacier-covered volcano that covers more than 200 km2.
+                        Primary_Photo_Credit: Photo by Norm Banks, 1985 (U.S. Geological Survey).
+                        Major_Rock_Type: Andesite / Basaltic Andesite
+                        GeoLocation: POINT (4.892 -75.324)
+                      - FID: Smithsonian_VOTW_Holocene_Volcanoes.fid--24b39c22_1a1a44e71a6_-6a08
+                        Volcano_Number: 351080
+                        Volcano_Name: Galeras
+                        Volcanic_Landform: Composite
+                        Primary_Volcano_Type: Complex
+                        Last_Eruption_Year: 2014
+                        Country: Colombia
+                        Region: South America Volcanic Regions
+                        Subregion: Northern Andean Volcanic Arc
+                        Geological_Summary: Galeras, a stratovolcano with a large breached caldera located immediately west of the city of Pasto, is one of Colombia's most frequently active volcanoes.
+                        Latitude: 1.22
+                        Longitude: -77.37
+                        Elevation: 4276
+                        Tectonic_Setting: Subduction zone / Continental crust (> 25 km)
+                        Geologic_Epoch: Holocene
+                        Evidence_Category: Eruption Observed
+                        Primary_Photo_Link: https://volcano.si.edu/gallery/photos/GVP-04376.jpg
+                        Primary_Photo_Caption: Galeras, a stratovolcano with a large breached caldera located immediately west of the city of Pasto, is one of Colombia's most frequently active volcanoes.
+                        Primary_Photo_Credit: Photo by Norm Banks, 1989 (U.S. Geological Survey).
+                        Major_Rock_Type: Andesite / Basaltic Andesite
+                        GeoLocation: POINT (1.22 -77.37)
+                    page:
+                      limit: 2
+                      next_token: eyJWb2xjYW5vX051bWJlciI6eyJOIjoiMzUxMDgwIn19
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/Throttled" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+        "504": { $ref: "#/components/responses/GatewayTimeout" }
+
+  /items/{id}:
+    get:
+      tags: [items]
+      operationId: getItem
+      summary: Registro por identificador principal (Volcano_Number)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+          example: 351020
+      responses:
+        "200":
+          description: Registro encontrado
+          headers:
+            x-request-id: { $ref: "#/components/headers/RequestId" }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/Item" }
+              examples:
+                default:
+                  value:
+                    data: *ruiz
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/ItemNotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/Throttled" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/DependencyUnavailable" }
+        "504": { $ref: "#/components/responses/GatewayTimeout" }
+
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: Llave compartida validada por un Lambda authorizer. No se guarda en el código ni en los estáticos.
+
+  headers:
+    RequestId:
+      description: Identificador de correlación; coincide con error.request_id y con los logs.
+      schema: { type: string }
+
+  schemas:
+    Item:
+      type: object
+      description: |
+        Un volcán, con todas las columnas del dataset y los nombres originales del CSV.
+        Las celdas vacías se devuelven como null.
+        La interfaz no muestra las columnas Primary_Photo_*.
+      additionalProperties: false
+      required:
+        - FID
+        - Volcano_Number
+        - Volcano_Name
+        - Volcanic_Landform
+        - Primary_Volcano_Type
+        - Last_Eruption_Year
+        - Country
+        - Region
+        - Subregion
+        - Geological_Summary
+        - Latitude
+        - Longitude
+        - Elevation
+        - Tectonic_Setting
+        - Geologic_Epoch
+        - Evidence_Category
+        - Primary_Photo_Link
+        - Primary_Photo_Caption
+        - Primary_Photo_Credit
+        - Major_Rock_Type
+        - GeoLocation
+      properties:
+        FID: { type: [string, "null"] }
+        Volcano_Number: { type: integer }
+        Volcano_Name: { type: string }
+        Volcanic_Landform: { type: [string, "null"] }
+        Primary_Volcano_Type: { type: [string, "null"] }
+        Last_Eruption_Year:
+          type: [integer, "null"]
+          description: Año de la última erupción. Negativo significa antes de nuestra era; null, sin dato.
+        Country: { type: string }
+        Region: { type: [string, "null"] }
+        Subregion: { type: [string, "null"] }
+        Geological_Summary: { type: [string, "null"] }
+        Latitude: { type: number }
+        Longitude: { type: number }
+        Elevation:
+          type: [integer, "null"]
+          description: Altura en metros; es negativa en volcanes submarinos.
+        Tectonic_Setting: { type: [string, "null"] }
+        Geologic_Epoch: { type: [string, "null"] }
+        Evidence_Category: { type: [string, "null"] }
+        Primary_Photo_Link: { type: [string, "null"] }
+        Primary_Photo_Caption: { type: [string, "null"] }
+        Primary_Photo_Credit: { type: [string, "null"] }
+        Major_Rock_Type: { type: [string, "null"] }
+        GeoLocation: { type: [string, "null"] }
+
+    Page:
+      type: object
+      required: [limit, next_token]
+      properties:
+        limit: { type: integer }
+        next_token:
+          type: [string, "null"]
+          description: null cuando no hay más páginas.
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code:
+              type: string
+              enum:
+                - INVALID_PARAMETER
+                - INVALID_PAGINATION_TOKEN
+                - ITEM_NOT_FOUND
+                - INTERNAL_ERROR
+                - DEPENDENCY_UNAVAILABLE
+            message: { type: string }
+            request_id: { type: string }
+            details:
+              type: object
+              additionalProperties: true
+
+    GatewayError:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Falta la cabecera x-api-key (formato del gateway)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/GatewayError" }
+          example: { message: Unauthorized }
+    Forbidden:
+      description: La llave no es válida (formato del gateway). El código se confirma en AWS.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/GatewayError" }
+          example: { message: Forbidden }
+    BadRequest:
+      description: Parámetro o token de paginación inválido
+      headers:
+        x-request-id: { $ref: "#/components/headers/RequestId" }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          examples:
+            invalidParameter:
+              value:
+                error:
+                  code: INVALID_PARAMETER
+                  message: limit debe estar entre 1 y 100.
+                  request_id: c0a8f3e2-5b1d-4c2a-9f3e-1a2b3c4d5e6f
+                  details: { parameter: limit, value: "500" }
+            invalidToken:
+              value:
+                error:
+                  code: INVALID_PAGINATION_TOKEN
+                  message: El token de paginación no es válido.
+                  request_id: c0a8f3e2-5b1d-4c2a-9f3e-1a2b3c4d5e6f
+    ItemNotFound:
+      description: No existe el registro
+      headers:
+        x-request-id: { $ref: "#/components/headers/RequestId" }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error:
+              code: ITEM_NOT_FOUND
+              message: No existe un registro con id 999999999.
+              request_id: c0a8f3e2-5b1d-4c2a-9f3e-1a2b3c4d5e6f
+              details: { id: "999999999" }
+    Throttled:
+      description: Límite de tasa de API Gateway (formato del gateway)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/GatewayError" }
+          example: { message: Too Many Requests }
+    InternalError:
+      description: Error no controlado de la función (ErrorResponse) o fallo de la integración en el gateway (GatewayError)
+      headers:
+        x-request-id:
+          description: Solo presente cuando responde la función.
+          schema: { type: string }
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/ErrorResponse"
+              - $ref: "#/components/schemas/GatewayError"
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: Ocurrió un error inesperado.
+              request_id: c0a8f3e2-5b1d-4c2a-9f3e-1a2b3c4d5e6f
+    DependencyUnavailable:
+      description: DynamoDB no disponible o con throttling (ErrorResponse); servicio no disponible en el gateway (GatewayError)
+      headers:
+        x-request-id:
+          description: Solo presente cuando responde la función.
+          schema: { type: string }
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/ErrorResponse"
+              - $ref: "#/components/schemas/GatewayError"
+          example:
+            error:
+              code: DEPENDENCY_UNAVAILABLE
+              message: El servicio de datos no está disponible. Intente de nuevo.
+              request_id: c0a8f3e2-5b1d-4c2a-9f3e-1a2b3c4d5e6f
+    GatewayTimeout:
+      description: Tiempo de espera agotado en el gateway (formato del gateway). El texto exacto de message se confirma en AWS.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/GatewayError" }
+          example: { message: Gateway Timeout }

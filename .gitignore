@@ -1,0 +1,42 @@
+# Todo se niega por defecto. Un archivo o una carpeta nueva de la raíz no se sube hasta habilitarla aquí.
+*
+
+# Lo que va al repositorio.
+!.gitignore
+!README.md
+!CONTRIBUTING.md
+!.github/
+!.github/**
+!contracts/
+!contracts/**
+!docs/
+!docs/**
+!frontend/
+!frontend/**
+!infra/
+!infra/**
+!scripts/
+!scripts/**
+!services/
+!services/**
+
+# Generados y secretos, que nunca se suben aunque estén dentro de una carpeta habilitada.
+.env
+.env.*
+!.env.example
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+.coverage
+node_modules/
+dist/
+build/
+*.zip
+.DS_Store

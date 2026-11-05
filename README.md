@@ -1,0 +1,80 @@
+# Explorador de Datos Serverless
+
+Aplicación web serverless en AWS para consultar el catálogo de volcanes del Holoceno del Smithsonian. Un CSV público se carga por eventos en DynamoDB y se consulta desde una interfaz de solo lectura, protegida con una llave.
+
+## Alcance
+
+- Infraestructura definida con Terraform y desplegada desde GitHub Actions, sin llaves de larga duración.
+- Carga automática al subir el CSV a S3, con validación de tipos, reporte y reintentos.
+- API HTTP de solo lectura: `GET /items` y `GET /items/{id}`.
+- Interfaz web en React que muestra los registros y busca uno por su identificador.
+
+Quedan fuera el inicio de sesión, la escritura desde la interfaz y el dominio propio. El detalle está en [docs/arquitectura.md](docs/arquitectura.md).
+
+## Arquitectura
+
+```mermaid
+flowchart LR
+    browser(["Navegador"]) -- "estáticos" --> cf["CloudFront y S3"]
+    browser -- "x-api-key" --> apigw["API Gateway HTTP API"]
+    apigw -- "¿llave válida?" --> auth["Lambda authorizer"]
+    auth --> ssm[("Parameter Store")]
+    apigw --> api["Lambda api"]
+    api --> ddb[("DynamoDB")]
+    op(["Operador"]) -- "CSV" --> s3[("S3 ingesta")]
+    s3 -- "evento" --> loader["Lambda loader"]
+    loader --> ddb
+    loader -- "reporte" --> s3
+```
+
+`api` y `loader` están en Node.js 24, `authorizer` en Python 3.13 y la interfaz en React con Vite.
+
+## Requisitos
+
+- Para desplegar: una cuenta de AWS y permisos para ejecutar los workflows de este repositorio.
+- Para el bootstrap: Bash, AWS CLI y credenciales temporales de administrador.
+- Para trabajar en local, según la parte: Node.js 24, Python 3.13 o Terraform 1.11 o superior.
+
+## Ejecución local
+
+Las validaciones locales no necesitan credenciales de AWS y son opcionales, porque los pipelines ejecutan las mismas en cada pull request.
+
+| Parte | Comandos |
+|---|---|
+| `frontend/` | `npm ci`, y `npm run dev` con `VITE_API_BASE_URL` apuntando a la API desplegada |
+| `services/api`, `services/loader`, `services/common` | `npm ci`, `npm run lint` y `npm test` |
+| `services/authorizer` | `ruff check` y `pytest` |
+| `infra/app` | `terraform fmt -check`, `terraform init -backend=false` y `terraform validate` |
+
+## Despliegue en AWS
+
+1. Ejecutar una vez `scripts/bootstrap.sh`, que crea el bucket de estado, el proveedor OIDC y el rol de despliegue, y guardar sus salidas como variables del repositorio.
+2. Lanzar a mano y en orden los workflows `infra.yml`, `lambdas.yml` y `web.yml`.
+
+Después, cada cambio se integra por pull request, y un push a `main` despliega la parte que cambió. La llave de acceso la genera Terraform, se guarda en Parameter Store y nunca está en este repositorio. Más detalle en [docs/detalle/despliegue.md](docs/detalle/despliegue.md).
+
+## Carga y verificación de datos
+
+1. Descargar el CSV con `scripts/download-dataset.py`, o desde el navegador con la [URL de la fuente](docs/detalle/datos.md#dataset).
+2. Si la carga debe quedar exacta, recrear antes la tabla con la opción manual `recreate-table` de `infra.yml`, porque la carga sobrescribe, pero no borra.
+3. Subir un solo archivo a `incoming/` en el bucket de ingesta. La carga empieza sola y toma unos minutos.
+4. Revisar `reports/<run_id>/summary.json`: el estado debe ser `SUCCEEDED`, con `rows_read` igual a `rows_written` y `rows_rejected` en 0.
+5. Comparar `rows_read` con el conteo en vivo de la consola de DynamoDB.
+
+## Destrucción del ambiente
+
+Lanzar a mano `infra.yml` con la opción `destroy`. Lo creado por el bootstrap se conserva y se elimina aparte.
+
+## Fuente de los datos
+
+Global Volcanism Program, Smithsonian Institution, [volcano.si.edu](https://volcano.si.edu). El uso es sin fines comerciales y citando la fuente; los términos están en [docs/fuente-de-datos.md](docs/fuente-de-datos.md).
+
+## Mapa de documentación
+
+| Documento | Contenido |
+|---|---|
+| [docs/arquitectura.md](docs/arquitectura.md) | Alcance, requisitos, vistas, flujos y riesgos. |
+| [docs/adr/README.md](docs/adr/README.md) | Decisiones de arquitectura, con alternativas y motivo. |
+| [docs/detalle/](docs/detalle/) | Datos, errores, funciones, seguridad, logs, despliegue, pruebas e interfaz. |
+| [contracts/openapi.yaml](contracts/openapi.yaml) | Contrato de la API. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Convenciones de código, documentación, ramas y commits. |
