@@ -16,7 +16,11 @@ Catálogo **Volcanoes of the World: Holocene Volcanoes** del Global Volcanism Pr
 
 `Volcano_Name` no sirve como clave porque 4 nombres se repiten.
 
-Como el catálogo se actualiza, cada descarga se guarda con su fecha en el nombre (`incoming/volcanoes-AAAA-MM-DD.csv`). Ese objeto es la copia congelada contra la que se verifica la carga, de modo que la carga y la verificación usan siempre el mismo archivo. Si la fuente bloquea `scripts/download-dataset.py`, el archivo se descarga desde el navegador y se sube desde la consola de S3 o con `aws s3 cp`.
+Como el catálogo se actualiza, cada descarga se guarda con su fecha en el nombre (`incoming/volcanoes-AAAA-MM-DD.csv`). Ese objeto es la copia congelada contra la que se verifica la carga, de modo que la carga y la verificación usan siempre el mismo archivo. El archivo se descarga desde el navegador, renombrándolo con esa fecha, o con el siguiente comando, y se sube desde la consola de S3 o con `aws s3 cp`:
+
+```bash
+curl -fsSL "https://webservices.volcano.si.edu/geoserver/GVP-VOTW/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=GVP-VOTW:Smithsonian_VOTW_Holocene_Volcanoes&outputFormat=csv" -o "volcanoes-$(date +%F).csv"
+```
 
 ## Tabla `eds-dev-items`
 

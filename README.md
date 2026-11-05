@@ -58,7 +58,7 @@ Después, cada cambio se integra por pull request. Un push a `main` despliega lo
 
 ## Carga y verificación de datos
 
-1. Descargar el CSV con `scripts/download-dataset.py`, o desde el navegador con la [URL de la fuente](docs/detalle/datos.md#dataset).
+1. Descargar el CSV desde el navegador o con `curl -fsSL "<URL>" -o "volcanoes-$(date +%F).csv"`, usando la [URL de la fuente](docs/detalle/datos.md#dataset). Si se descarga desde el navegador, se guarda con el mismo nombre: la fecha identifica la copia fija contra la que se verifica la carga.
 2. Si la carga debe quedar exacta, recrear antes la tabla con la opción manual `recreate-table` de `infra.yml`, porque la carga sobrescribe, pero no borra.
 3. Subir un solo archivo a `incoming/` en el bucket de ingesta. La carga empieza sola y toma unos minutos.
 4. Revisar `reports/<run_id>/summary.json`: el estado debe ser `SUCCEEDED`, con `rows_read` igual a `rows_written` y `rows_rejected` en 0.
