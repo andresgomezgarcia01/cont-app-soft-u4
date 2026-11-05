@@ -4,7 +4,7 @@ Aplicación web serverless en AWS para consultar el catálogo de volcanes del Ho
 
 ## Alcance
 
-- Infraestructura definida con Terraform y desplegada desde GitHub Actions, sin llaves de larga duración.
+- Infraestructura definida con Terraform y desplegada desde GitHub Actions, con la llave de un usuario IAM guardada en secretos de GitHub.
 - Carga automática al subir el CSV a S3, con validación de tipos, reporte y reintentos.
 - API HTTP de solo lectura: `GET /items` y `GET /items/{id}`.
 - Interfaz web en React que muestra los registros y busca uno por su identificador.
@@ -48,10 +48,13 @@ Las validaciones locales no necesitan credenciales de AWS y son opcionales, porq
 
 ## Despliegue en AWS
 
-1. Ejecutar una vez `scripts/bootstrap.sh`, que crea el bucket de estado, el proveedor OIDC y el rol de despliegue, y guardar sus salidas como variables del repositorio.
-2. Lanzar a mano y en orden los workflows `infra.yml`, `lambdas.yml` y `web.yml`.
+La solución se despliega en una cuenta de proyecto de AWS; en otro tipo de cuenta, las restricciones pueden ser distintas.
 
-Después, cada cambio se integra por pull request, y un push a `main` despliega la parte que cambió. La llave de acceso la genera Terraform, se guarda en Parameter Store y nunca está en este repositorio. Más detalle en [docs/detalle/despliegue.md](docs/detalle/despliegue.md).
+1. Ejecutar una vez `scripts/bootstrap.sh`, que crea el bucket de estado y el usuario IAM de despliegue con su política.
+2. [Configurar GitHub](docs/detalle/despliegue.md#configuración-en-github): el Environment `aws`, limitado a `main`, con la llave del usuario en sus secretos, y la variable del repositorio `TF_STATE_BUCKET`.
+3. Lanzar a mano y en orden los workflows `infra.yml`, `lambdas.yml` y `web.yml`.
+
+Después, cada cambio se integra por pull request, y un push a `main` despliega la parte que cambió. La llave de la API la genera Terraform, se guarda en Parameter Store y nunca está en este repositorio. Más detalle en [docs/detalle/despliegue.md](docs/detalle/despliegue.md).
 
 ## Carga y verificación de datos
 
@@ -63,7 +66,7 @@ Después, cada cambio se integra por pull request, y un push a `main` despliega 
 
 ## Destrucción del ambiente
 
-Lanzar a mano `infra.yml` con la opción `destroy`. Lo creado por el bootstrap se conserva y se elimina aparte.
+Lanzar a mano `infra.yml` con la opción `destroy`. Lo creado por el bootstrap se conserva y se elimina aparte. La llave de `eds-github-deploy` se desactiva con `aws iam update-access-key` y se borra con `aws iam delete-access-key`.
 
 ## Fuente de los datos
 

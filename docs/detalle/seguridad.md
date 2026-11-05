@@ -11,11 +11,15 @@ Cada función tiene su rol, y los tres pueden escribir en su propio grupo de log
 | `authorizer` | `ssm:GetParameter` solo sobre `/eds/dev/api-key`, y el descifrado que exija el parámetro *(verificar)*. |
 | `api` | `dynamodb:GetItem` y `dynamodb:Scan` sobre la tabla. Nada de escritura. |
 | `loader` | `s3:GetObject` en `incoming/*`; `s3:PutObject` en `reports/*`; `dynamodb:BatchWriteItem` sobre la tabla. |
-| `eds-github-deploy` | Lo asume GitHub Actions por OIDC, restringido al repositorio y a la rama `main`. Permisos limitados a los servicios usados y, donde el ARN lo permite, a los nombres `eds-*` y al parámetro `/eds/dev/*`, incluido el descifrado de ese parámetro. Sin llaves de acceso de larga duración. |
+| `eds-github-deploy` | Usuario IAM sin acceso a la consola. GitHub Actions usa su llave, guardada en los secretos del Environment `aws`, limitado a la rama `main`. Permisos limitados a los servicios usados y, donde el ARN lo permite, a los nombres `eds-dev-*` y al parámetro `/eds/dev/*`, incluido el descifrado de ese parámetro. Sobre el bucket de estado `eds-tfstate-<account_id>` solo puede listar el bucket, leer y escribir objetos, y borrar únicamente el bloqueo `*.tflock`. Así, el usuario no puede modificar sus propios permisos ni borrar ese bucket de forma directa. |
 
 La invocación de `loader` se limita con un `aws_lambda_permission` que solo permite a S3 invocarla desde el ARN del bucket de ingesta.
 
-Las tareas manuales (bootstrap, subir el CSV, verificar la carga y consultar la llave) las hace un operador con su propio acceso a la cuenta; no usan el rol de GitHub.
+Las tareas manuales (bootstrap, subir el CSV, verificar la carga y consultar la llave) las hace un operador con su propio acceso a la cuenta; no usan el usuario de GitHub.
+
+### Riesgo aceptado del usuario de despliegue
+
+La llave de `eds-github-deploy` es de larga duración, porque la SCP de la cuenta impide usar OIDC ([ADR-0012](../adr/ADR-0012-pipelines-github-actions.md)). Si se filtra, sirve fuera de GitHub hasta que se desactive, y la restricción a `main` la aplica GitHub, no AWS. Con ella se puede cambiar el sitio y el código de las funciones, borrar la tabla, alterar el estado de Terraform y leer la llave de la API. Además, el usuario puede crear roles `eds-dev-*` con cualquier política en línea, y no se usa un permissions boundary, de modo que quien tenga la llave o pueda escribir en `main` podría obtener permisos de administrador de la cuenta de forma indirecta. Se acepta porque es un ambiente temporal con datos públicos. Para acotar el riesgo, se protege `main` exigiendo pull requests y, al terminar, la llave se desactiva y se borra.
 
 ## Llave
 

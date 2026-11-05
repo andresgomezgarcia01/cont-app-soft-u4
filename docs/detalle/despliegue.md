@@ -7,7 +7,7 @@ Convención: `eds-<ambiente>-<recurso>`. Todas las etiquetas incluyen `project=e
 | Recurso | Nombre (ambiente `dev`) | Se crea con |
 |---|---|---|
 | Bucket de estado de Terraform | `eds-tfstate-<account_id>` | `scripts/bootstrap.sh` |
-| Proveedor OIDC y rol de despliegue | `eds-github-deploy` | `scripts/bootstrap.sh` |
+| Usuario IAM de despliegue y su política administrada | `eds-github-deploy` | `scripts/bootstrap.sh` |
 | Distribución de CloudFront (`PriceClass_100`) y OAC | `eds-dev-web` | Terraform `app` |
 | Bucket sitio web | `eds-dev-web-<account_id>` | Terraform `app` |
 | Bucket ingesta | `eds-dev-ingest-<account_id>` | Terraform `app` |
@@ -23,8 +23,8 @@ Carpetas: `contracts/`, `services/` (`common`, `authorizer`, `api`, `loader`), `
 
 | Script | Función |
 |---|---|
-| `scripts/bootstrap.sh` | Crea el bucket de estado, el proveedor OIDC y el rol de despliegue. |
-| `scripts/deploy-policy.json` | Permisos del rol de despliegue. |
+| `scripts/bootstrap.sh` | Crea el bucket de estado y el usuario IAM de despliegue con su política. |
+| `scripts/deploy-policy.json` | Permisos del usuario de despliegue. |
 | `scripts/download-dataset.py` | Descarga el CSV de la fuente con la fecha en el nombre. |
 | `scripts/package-lambda.sh` | Arma el ZIP de cada función con `services/<función>/src`; `api` y `loader` incluyen además `services/common` y sus dependencias de producción. |
 
@@ -40,11 +40,11 @@ Las variables propias son `cors_allow_origins` y `api_key_version`. Las salidas 
 
 ```mermaid
 flowchart LR
-    dev(["Operador"]) -- "scripts/bootstrap.sh" --> base["Bucket de estado,<br/>proveedor OIDC y rol"]
+    dev(["Operador"]) -- "scripts/bootstrap.sh" --> base["Bucket de estado y<br/>usuario IAM"]
     repo["GitHub<br/>pull request a main"] --> infra["infra.yml"]
     repo --> lambdas["lambdas.yml"]
     repo --> web["web.yml"]
-    base -. "rol OIDC y estado" .-> infra & lambdas & web
+    base -. "usuario IAM y estado" .-> infra & lambdas & web
     infra --> res["CloudFront, S3, HTTP API, DynamoDB,<br/>Parameter Store y funciones"]
     lambdas -- "código real" --> fn["Lambda api, loader y authorizer"]
     web -- "build" --> s3["S3 sitio e invalidación de CloudFront"]
@@ -55,14 +55,46 @@ flowchart LR
 Es lo que debe existir antes de que GitHub pueda desplegar y que el pipeline no puede crear por sí mismo. `scripts/bootstrap.sh` se ejecuta una vez y se puede repetir sin efectos adversos. Requiere Bash (Linux o WSL), AWS CLI y credenciales temporales de administrador de la cuenta. Crea:
 
 1. El bucket de estado de Terraform, con versionado, cifrado y sin acceso público.
-2. El proveedor OIDC de GitHub (`token.actions.githubusercontent.com`).
-3. El rol `eds-github-deploy`, con la política de `scripts/deploy-policy.json` y [confianza limitada](seguridad.md#permisos-por-rol). La política incluye los permisos que exige activar los access logs del gateway, como `logs:CreateLogDelivery`.
+2. El usuario IAM `eds-github-deploy`, sin acceso a la consola.
+3. La política administrada `eds-github-deploy`, con el contenido de `scripts/deploy-policy.json`, adjunta a ese usuario. La política incluye los permisos que exige activar los access logs del gateway, como `logs:CreateLogDelivery`.
 
-Al terminar, imprime el ARN del rol y el nombre del bucket, que se guardan como variables del repositorio; no son secretos.
+Al terminar, imprime el nombre del usuario y del bucket. El script no crea la llave del usuario.
+
+## Configuración en GitHub
+
+Después del bootstrap, se configura el repositorio con `gh`, desde una copia del repositorio y en este orden.
+
+1. Crear el Environment `aws` y limitarlo a la rama `main`. Así, solo los jobs que corren en `main` y declaran `environment: aws` pueden leer sus secretos:
+
+```bash
+gh api --method PUT 'repos/{owner}/{repo}/environments/aws' --input - <<'EOF'
+{"deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true}}
+EOF
+gh api --method POST 'repos/{owner}/{repo}/environments/aws/deployment-branch-policies' \
+  -f name=main -f type=branch
+```
+
+2. Guardar en la variable del repositorio `TF_STATE_BUCKET` el nombre del bucket que imprimió el bootstrap; no es un secreto:
+
+```bash
+gh variable set TF_STATE_BUCKET --body <bucket>
+```
+
+3. Crear la llave y guardarla en los secretos `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` del Environment, que es lo que indica `--env aws`. Los valores pasan por stdin, de modo que no quedan en pantalla ni en el historial de la terminal:
+
+```bash
+aws iam create-access-key --user-name eds-github-deploy \
+  --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text \
+  | { read -r key_id secret_key \
+      && printf '%s' "$key_id" | gh secret set AWS_ACCESS_KEY_ID --env aws \
+      && printf '%s' "$secret_key" | gh secret set AWS_SECRET_ACCESS_KEY --env aws; }
+```
+
+Si `gh` falla, el valor secreto ya no se puede recuperar y los secretos pueden quedar inconsistentes. Se identifica la llave nueva con `aws iam list-access-keys --user-name eds-github-deploy`, se borra con `aws iam delete-access-key --user-name eds-github-deploy --access-key-id <id>` y se repite el comando.
 
 ## Pipelines
 
-Cada componente tiene su pipeline ([ADR-0012](../adr/ADR-0012-pipelines-github-actions-oidc.md)), que se dispara cuando cambia su carpeta o de forma manual (`workflow_dispatch`). Así, cada persona despliega desde el repositorio, sin configurar credenciales de AWS en su equipo. En un pull request se valida sin credenciales; en `main`, además, se despliega.
+Cada componente tiene su pipeline ([ADR-0012](../adr/ADR-0012-pipelines-github-actions.md)), que se dispara cuando cambia su carpeta o de forma manual (`workflow_dispatch`). Así, cada persona despliega desde el repositorio, sin configurar credenciales de AWS en su equipo. En un pull request se valida sin credenciales; en `main`, además, se despliega con jobs que declaran `environment: aws`.
 
 | Workflow | Se dispara por | En pull request | En `main` |
 |---|---|---|---|
@@ -74,7 +106,7 @@ Con un repositorio público, los runners estándar de GitHub Actions no tienen c
 
 ## Primer despliegue
 
-Después del bootstrap, se ejecutan a mano y en orden `infra.yml`, `lambdas.yml` y `web.yml`. Si el primer push toca las tres carpetas y sus ejecuciones fallan o se adelantan, basta con relanzarlas en este orden.
+Después del bootstrap y de la configuración en GitHub, se ejecutan a mano y en orden `infra.yml`, `lambdas.yml` y `web.yml`. Si el primer push toca las tres carpetas y sus ejecuciones fallan o se adelantan, basta con relanzarlas en este orden.
 
 La carga de datos no es un workflow: un operador descarga el archivo con `scripts/download-dataset.py` o desde el navegador, lo sube a `incoming/`, desde la consola de S3 o con `aws s3 cp`, y consulta el reporte en `reports/` ([verificación](pruebas.md#verificación-de-la-carga)).
 

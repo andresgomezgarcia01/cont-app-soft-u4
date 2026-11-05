@@ -53,13 +53,13 @@ El sistema toma un CSV público, lo carga en una base de datos serverless y lo e
 | Id | Atributo | Criterio de aceptación |
 |---|---|---|
 | RNF-01 | Desempeño | Con la función ya iniciada, una consulta responde en menos de 300 ms (p95) medido en API Gateway. En arranque en frío se tolera hasta 1,5 s *(verificar)*. |
-| RNF-02 | Seguridad | Cada función tiene su propio rol IAM con las acciones mínimas sobre los recursos que usa. Ningún bucket es público. El sitio se sirve por HTTPS. Ninguna llave queda en el repositorio ni en los estáticos, y no hay credenciales de larga duración en la automatización. |
+| RNF-02 | Seguridad | Cada función tiene su propio rol IAM con las acciones mínimas sobre los recursos que usa. Ningún bucket es público. El sitio se sirve por HTTPS. Ninguna llave queda en el repositorio ni en los estáticos. La automatización usa una llave de larga duración de un usuario IAM, guardada en secretos de GitHub ([ADR-0012](adr/ADR-0012-pipelines-github-actions.md)). |
 | RNF-03 | Integridad de datos | Los tipos de cada columna se conservan (enteros y decimales como números, y texto como cadena). Ninguna fila se pierde en silencio: en una carga completa, cada una se escribe o queda en el reporte de rechazos. Si la carga termina en `FAILED`, el reporte lo indica y se repite. |
 | RNF-04 | Confiabilidad de la ingesta | Un fallo transitorio de la carga se reintenta automáticamente; un fallo persistente queda en el reporte `FAILED` o en los logs, y la carga se repite volviendo a subir el archivo. |
 | RNF-05 | Observabilidad | Toda petición y toda carga dejan logs estructurados en JSON con un identificador de correlación que también se devuelve al cliente. |
 | RNF-06 | Capacidad | Con el ritmo de escritura de 20 WCU/s y el timeout de 300 s, una carga admite hasta unas 4 800 WCU, con 60 s de margen. El dataset consume unas 2 650 WCU *(estimado; verificar en la carga real)*. |
 | RNF-07 | Mantenibilidad | Cambiar de dataset requiere cambiar el contrato de esquema, el OpenAPI, la interfaz y, si cambia el tipo de la clave, la tabla en Terraform. La cadena de validación, el escritor y la infraestructura restante no cambian. |
-| RNF-08 | Reproducibilidad | Todo recurso se crea con Terraform, salvo lo previo que crea el script de bootstrap (bucket de estado, proveedor OIDC y rol de despliegue); no hay cambios manuales en la consola. |
+| RNF-08 | Reproducibilidad | Todo recurso se crea con Terraform, salvo lo previo que crea el script de bootstrap (bucket de estado y usuario IAM de despliegue con su política) y la llave de ese usuario, que se crea con un comando aparte; no hay cambios manuales en la consola. |
 | RNF-09 | Protección ante abuso | La API aplica límites de tasa (throttling) para acotar costo y abuso. |
 | RNF-10 | Costo de datos | La tabla no supera las 25 WCU y 25 RCU aprovisionadas de la capa gratuita de DynamoDB ([ADR-0002](adr/ADR-0002-dynamodb-aprovisionado.md)). |
 
@@ -67,7 +67,7 @@ El sistema toma un CSV público, lo carga en una base de datos serverless y lo e
 
 1. AWS, región `us-east-2` ([ADR-0010](adr/ADR-0010-region-us-east-2.md)).
 2. Solo servicios administrados: S3, CloudFront, API Gateway, Lambda, DynamoDB, Systems Manager Parameter Store, CloudWatch e IAM.
-3. Terraform ≥ 1.11 con los proveedores `hashicorp/aws` ~> 6.0, `hashicorp/archive` y `hashicorp/random` *(verificar versión al iniciar)*. Lo único previo a Terraform es el [bootstrap](detalle/despliegue.md#bootstrap).
+3. Terraform ≥ 1.11 con los proveedores `hashicorp/aws` ~> 6.0, `hashicorp/archive` y `hashicorp/random` *(verificar versión al iniciar)*. Lo único previo a Terraform es el [bootstrap](detalle/despliegue.md#bootstrap) y la llave del usuario de despliegue.
 4. Funciones empaquetadas como ZIP: `api` y `loader` en Node.js 24, y `authorizer` en Python 3.13 ([ADR-0016](adr/ADR-0016-lenguajes-de-las-funciones.md), [ADR-0001](adr/ADR-0001-funciones-empaquetadas-zip.md)).
 5. La interfaz se construye con React y Vite y compila a estáticos (SPA), servidos por CloudFront desde un bucket privado.
 6. La URL base de la API llega como variable de entorno al compilar. La llave nunca se compila: la escribe quien usa el sitio.
@@ -91,7 +91,7 @@ flowchart LR
     operador -- "Descarga el CSV" --> fuente
     operador -- "Sube el CSV a ingesta" --> sistema
     dev -- "Push / Pull request" --> gh
-    gh -- "Tres pipelines con rol OIDC" --> sistema
+    gh -- "Tres pipelines con llave de usuario IAM" --> sistema
 ```
 
 ### Contenedores
@@ -147,7 +147,7 @@ flowchart TB
 | Bucket de ingesta | S3 | Recibe el CSV y guarda los reportes de carga. | [ADR-0006](adr/ADR-0006-ingesta-s3-lambda-asincrona.md) |
 | Función de carga | Lambda `loader` | Se invoca de forma asíncrona con la notificación de S3; valida, tipa y escribe a un ritmo controlado; genera el reporte. | [ADR-0006](adr/ADR-0006-ingesta-s3-lambda-asincrona.md), [ADR-0008](adr/ADR-0008-contrato-de-esquema.md) |
 | Observabilidad | CloudWatch Logs | Access logs del gateway y logs de las tres funciones, con un [esquema común](detalle/logs.md). | No aplica |
-| Automatización | GitHub Actions con OIDC | Despliega infraestructura, funciones y sitio sin llaves de larga duración. | [ADR-0012](adr/ADR-0012-pipelines-github-actions-oidc.md) |
+| Automatización | GitHub Actions con llave de usuario IAM | Despliega infraestructura, funciones y sitio con una llave guardada en secretos de GitHub. | [ADR-0012](adr/ADR-0012-pipelines-github-actions.md) |
 
 ## 5. Flujos principales
 
@@ -165,7 +165,7 @@ flowchart TB
 
 ### Despliegue
 
-Se trabaja por pull request. Un push a `main` dispara el pipeline de la carpeta que cambió: `infra/` aplica Terraform, `services/` actualiza el código de las funciones y `frontend/` compila, sincroniza el bucket e invalida CloudFront. Cada pipeline asume un rol de AWS por OIDC. El detalle y el orden del primer despliegue están en [detalle/despliegue.md](detalle/despliegue.md).
+Se trabaja por pull request. Un push a `main` dispara el pipeline de la carpeta que cambió: `infra/` aplica Terraform, `services/` actualiza el código de las funciones y `frontend/` compila, sincroniza el bucket e invalida CloudFront. Los jobs que despliegan usan la llave del usuario IAM, guardada en el Environment `aws` de GitHub. El detalle y el orden del primer despliegue están en [detalle/despliegue.md](detalle/despliegue.md).
 
 ## 6. Riesgos y limitaciones
 
