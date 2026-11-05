@@ -17,7 +17,7 @@ Esta carpeta reúne las decisiones de arquitectura del Explorador de Datos Serve
 | [ADR-0009](ADR-0009-contract-first-openapi.md) | Contract-first con OpenAPI y frontend contra la API desplegada | Aprobada |
 | [ADR-0010](ADR-0010-region-us-east-2.md) | Región us-east-2 | Aprobada |
 | [ADR-0011](ADR-0011-dataset-holocene-volcanoes.md) | Dataset Holocene Volcanoes del Smithsonian | Aprobada |
-| [ADR-0012](ADR-0012-pipelines-github-actions-oidc.md) | Tres pipelines en GitHub Actions con OIDC | Aprobada |
+| [ADR-0012](ADR-0012-pipelines-github-actions.md) | Tres pipelines en GitHub Actions con llave de usuario IAM | Aprobada |
 | [ADR-0013](ADR-0013-pruebas-locales-sin-emuladores.md) | Pruebas locales sin credenciales ni emuladores | Aprobada |
 | [ADR-0014](ADR-0014-agregados-precalculados.md) | Agregados del panel precalculados por la carga | Descartada |
 | [ADR-0015](ADR-0015-busqueda-por-identificador-sin-imagenes.md) | Búsqueda por identificador y sin imágenes | Aprobada |
