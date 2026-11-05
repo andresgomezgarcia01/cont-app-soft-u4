@@ -105,7 +105,7 @@ El escritor agrupa lotes de 10 ítems, pide a DynamoDB la capacidad consumida (`
 
 ## Authorizer
 
-Es la excepción a las capas, por su tamaño, y la única función en Python: un solo `handler.py` que lee Parameter Store directamente con `boto3`. Recibe el evento en formato 2.0 y responde `{"isAuthorized": true}` o `{"isAuthorized": false}` (respuesta simple). Compara la llave con `hmac.compare_digest`, nunca escribe la llave en los logs y relee el parámetro cada 5 minutos, de modo que una llave nueva se aplique sin desplegar. Si no puede leer el parámetro, lanza una excepción: el gateway responde 500 *(verificar)*, no se concede acceso y la interfaz no confunde un fallo temporal con una llave inválida.
+Es la excepción a las capas, por su tamaño, y la única función en Python: un solo `handler.py` que lee Parameter Store directamente con `boto3`. Recibe el evento en formato 2.0 y responde `{"isAuthorized": true}` o `{"isAuthorized": false}` (respuesta simple). Compara la llave con `hmac.compare_digest`, nunca escribe la llave en los logs y relee el parámetro cada 5 minutos, de modo que una llave nueva se aplique sin desplegar. Si no puede leer el parámetro, lanza una excepción: el gateway responde 500, no se concede acceso y la interfaz no confunde un fallo temporal con una llave inválida.
 
 ## Buenas prácticas
 
