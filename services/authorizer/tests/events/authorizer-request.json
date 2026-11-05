@@ -1,0 +1,35 @@
+{
+  "version": "2.0",
+  "type": "REQUEST",
+  "routeArn": "arn:aws:execute-api:us-east-2:123456789012:abcdef123/$default/GET/items/351020",
+  "identitySource": ["llave-de-ejemplo"],
+  "routeKey": "GET /items/{id}",
+  "rawPath": "/items/351020",
+  "rawQueryString": "",
+  "headers": {
+    "accept": "application/json",
+    "host": "abcdef123.execute-api.us-east-2.amazonaws.com",
+    "x-api-key": "llave-de-ejemplo"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "abcdef123",
+    "domainName": "abcdef123.execute-api.us-east-2.amazonaws.com",
+    "domainPrefix": "abcdef123",
+    "http": {
+      "method": "GET",
+      "path": "/items/351020",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "192.0.2.1",
+      "userAgent": "curl/8.0.0"
+    },
+    "requestId": "AbCdEfGhIjKlMnO=",
+    "routeKey": "GET /items/{id}",
+    "stage": "$default",
+    "time": "05/Nov/2026:12:00:00 +0000",
+    "timeEpoch": 1793880000000
+  },
+  "pathParameters": {
+    "id": "351020"
+  }
+}

@@ -60,7 +60,7 @@ resource "aws_lambda_function" "functions" {
     log_format            = "JSON"
     log_group             = aws_cloudwatch_log_group.functions[each.key].name
     application_log_level = "INFO"
-    # Las líneas START, END y REPORT son de nivel INFO y sirven para diagnosticar timeouts.
+    # Los eventos platform.start y platform.report son de nivel INFO y sirven para diagnosticar timeouts.
     system_log_level = "INFO"
   }
 

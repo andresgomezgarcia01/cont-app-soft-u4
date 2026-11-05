@@ -1,0 +1,119 @@
+name: lambdas
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/**"
+      - "scripts/package-lambda.sh"
+      - "scripts/check-lambda-bundle.mjs"
+      - ".github/workflows/lambdas.yml"
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - "scripts/package-lambda.sh"
+      - "scripts/check-lambda-bundle.mjs"
+      - ".github/workflows/lambdas.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
+  NODE_VERSION: "24"
+  FUNCTIONS: "api loader authorizer"
+  FUNCTION_NAME_PREFIX: "eds-dev"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Valida las funciones en Node.js
+        run: |
+          for dir in common api loader; do
+            if [[ ! -d "services/$dir" ]]; then
+              echo "services/$dir no existe; se omite."
+              continue
+            fi
+            (
+              cd "services/$dir"
+              npm ci
+              npm run lint
+              npm test
+            )
+          done
+      - name: Valida authorizer
+        run: |
+          if [[ ! -d services/authorizer ]]; then
+            echo "services/authorizer no existe; se omite."
+            exit 0
+          fi
+          cd services/authorizer
+          pip install -r requirements-dev.txt
+          ruff check .
+          ruff format --check .
+          pytest
+      # Un cambio que solo toca el script de empaquetado no tendría otra validación.
+      - name: Empaqueta las funciones
+        run: |
+          for function in $FUNCTIONS; do
+            if [[ ! -d "services/$function" ]]; then
+              echo "services/$function no existe; se omite."
+              continue
+            fi
+            scripts/package-lambda.sh "$function"
+          done
+      - name: Carga los handlers empaquetados
+        run: |
+          for function in api loader; do
+            if [[ ! -d "services/$function" ]]; then
+              echo "services/$function no existe; se omite."
+              continue
+            fi
+            node scripts/check-lambda-bundle.mjs "dist/$function.zip"
+          done
+
+  deploy:
+    needs: validate
+    # Un dispatch desde otra rama solo valida; el Environment ya rechazaría sus secretos.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: aws
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - name: Actualiza el código de las funciones
+        run: |
+          for function in $FUNCTIONS; do
+            if [[ ! -d "services/$function" ]]; then
+              echo "services/$function no existe; $FUNCTION_NAME_PREFIX-$function conserva su código actual."
+              continue
+            fi
+            scripts/package-lambda.sh "$function"
+            aws lambda update-function-code \
+              --function-name "$FUNCTION_NAME_PREFIX-$function" \
+              --zip-file "fileb://dist/$function.zip" \
+              --query CodeSha256 \
+              --output text
+            aws lambda wait function-updated --function-name "$FUNCTION_NAME_PREFIX-$function"
+          done

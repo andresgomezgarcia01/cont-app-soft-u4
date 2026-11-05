@@ -116,7 +116,7 @@ Terraform crea los cuatro grupos y activa en cada función `log_format = "JSON"`
 
 ## Cómo seguir una petición
 
-El frontend muestra el `request_id` en los errores inesperados (UI-07). En los errores del propio gateway, que no traen ese campo, lo toma de la cabecera `apigw-requestid` *(verificar que llega en esas respuestas)*; si no llega, se busca por hora y código en los access logs. Con ese valor, se seleccionan los cuatro grupos en CloudWatch Logs Insights y se consulta:
+El frontend muestra el `request_id` en los errores inesperados (UI-07). En los errores del propio gateway, que no traen ese campo, lo toma de la cabecera `apigw-requestid`; si no puede leerla, se busca por hora y código en los access logs. Con ese valor, se seleccionan los cuatro grupos en CloudWatch Logs Insights y se consulta:
 
 ```text
 fields @timestamp, service, message, status, error_code
@@ -124,4 +124,4 @@ fields @timestamp, service, message, status, error_code
 | sort @timestamp asc
 ```
 
-Si la función falla antes de escribir, como en un timeout, `lambda_request_id` permite buscar las líneas `START`, `END` y `REPORT` de esa invocación.
+Si la función falla antes de escribir, como en un timeout, `lambda_request_id` permite buscar los eventos `platform.start` y `platform.report` de esa invocación.

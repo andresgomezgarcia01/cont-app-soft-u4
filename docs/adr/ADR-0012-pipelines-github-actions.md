@@ -8,7 +8,7 @@ La infraestructura, las funciones y el sitio web cambian a ritmos distintos y lo
 
 ## Decisión
 
-Se trabaja por pull request, con tres pipelines de GitHub Actions: `infra.yml` (infraestructura), `lambdas.yml` (funciones) y `web.yml` (sitio web). Cada uno se dispara cuando cambia su carpeta o de forma manual (`workflow_dispatch`); `infra.yml`, además, cuando cambia el propio workflow. En un pull request se valida sin credenciales. Un push a `main` despliega con `lambdas.yml` y `web.yml`.
+Se trabaja por pull request, con tres pipelines de GitHub Actions: `infra.yml` (infraestructura), `lambdas.yml` (funciones) y `web.yml` (sitio web). Cada uno se dispara cuando cambia su carpeta o de forma manual (`workflow_dispatch`); `infra.yml` y `lambdas.yml`, además, cuando cambia el propio workflow, y `lambdas.yml`, cuando cambia `scripts/package-lambda.sh` o `scripts/check-lambda-bundle.mjs`. En un pull request se valida sin credenciales. Un push a `main` despliega con `lambdas.yml` y `web.yml`.
 
 `infra.yml`, en cambio, no aplica al recibir un push: valida y ejecuta `terraform plan`. Para aplicar, se lanza a mano desde `main` con el parámetro `action`: `apply`, `recreate-table` (limitada a la tabla con `-replace` y `-target`) o `destroy`. Cada acción guarda un plan y aplica ese plan, sin pausa entre ambos: el plan queda como registro en el log, y el control es revisar el plan del push antes de lanzar la acción manual. Un lanzamiento manual desde otra rama solo valida.
 
