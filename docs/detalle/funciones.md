@@ -17,7 +17,7 @@ Las responsabilidades por componente están en [arquitectura.md](../arquitectura
 | `handler.mjs` | Traduce entre el evento de AWS y la lógica. Sin lógica de negocio ni llamadas al AWS SDK. En la API, contiene el enrutador. |
 | `service.mjs` | Casos de uso. Recibe sus dependencias por constructor; no conoce la forma del evento. |
 | `repository.mjs` | Único lugar donde se usa el AWS SDK. Traduce errores de AWS a excepciones propias (por ejemplo, throttling de DynamoDB a `DependencyUnavailable`). |
-| `common/` | Errores, respuestas, logging, configuración, serialización y el contrato de esquema. Se empaqueta dentro del ZIP de `api` y `loader`, porque la carga valida con el contrato y la API lo usa para devolver como `null` las columnas ausentes. |
+| `common/` | Errores, respuestas, logging, configuración, serialización y el contrato de esquema. Se empaqueta dentro del ZIP de `api` y `loader`, porque la carga valida con el contrato y la API lo usa para devolver como `null` las columnas ausentes. Se importa siempre con ruta relativa, por ejemplo, `../../common/logs.mjs`. El contrato también se importa, no se lee por ruta con `readFileSync`, porque esbuild solo incluye en el `handler.mjs` lo que se importa. |
 
 Además, `loader` tiene `chain/` (manejadores de la cadena).
 
@@ -110,7 +110,7 @@ Es la excepción a las capas, por su tamaño, y la única función en Python: un
 ## Buenas prácticas
 
 1. **Inicialización fuera del handler.** Los clientes del SDK, el contrato de esquema y los servicios se crean a nivel de módulo, para no repetir ese costo en invocaciones en caliente y reutilizar las conexiones HTTP.
-2. **Clientes con configuración explícita**, con los [valores de la API](errores.md#reintentos-e-idempotencia).
+2. **Clientes con configuración explícita**: en `api`, con los [valores de la API](errores.md#reintentos-e-idempotencia); en `authorizer`, 1 s de conexión, 2 s de lectura y sin reintentos, para fallar dentro de su timeout de 5 s.
 3. **Sin estado entre invocaciones.** A nivel de módulo solo vive lo inmutable (clientes, contrato) y, en `authorizer`, la copia de la llave con su vencimiento; nunca datos de una petición.
 4. **Configuración desde Terraform.** Las variables de entorno son `TABLE_NAME` (`api`, `loader`), `INGEST_BUCKET_NAME` y `WRITE_RATE_WCU` (`loader`), y `API_KEY_PARAMETER_NAME` (`authorizer`). El nivel de log llega, en cambio, por la configuración de logs de la función.
 5. **Logs estructurados en JSON**, con el [esquema común](logs.md).

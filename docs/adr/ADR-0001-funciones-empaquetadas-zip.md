@@ -8,7 +8,7 @@ La solución tiene tres funciones Lambda: `api` y `loader` en Node.js 24, y `aut
 
 ## Decisión
 
-Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional por función (`archive_file` sobre `placeholder/<función>`) e ignora los cambios posteriores de su código (`ignore_changes`). En ese código provisional, `authorizer` y `loader` siempre lanzan una excepción, y `api` responde 200 con un JSON fijo (`{"status":"placeholder"}`), sin tocar datos y fuera del contrato. Por su parte, el pipeline `lambdas.yml` despliega el código real: un script arma cada ZIP con `services/<función>/src` y, en `api` y `loader`, agrega `services/common` y sus dependencias de producción.
+Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional por función (`archive_file` sobre `placeholder/<función>`) e ignora los cambios posteriores de su código (`ignore_changes`). En ese código provisional, `authorizer` y `loader` siempre lanzan una excepción, y `api` responde 200 con un JSON fijo (`{"status":"placeholder"}`), sin tocar datos y fuera del contrato. Por su parte, el pipeline `lambdas.yml` despliega el código real: un script arma cada ZIP. En `authorizer` usa `services/authorizer/src`. En `api` y `loader` genera con esbuild un solo `handler.mjs`, que incluye `services/common` y las dependencias de producción, salvo el AWS SDK del runtime; el ZIP no lleva `node_modules`.
 
 ## Alternativas consideradas
 
