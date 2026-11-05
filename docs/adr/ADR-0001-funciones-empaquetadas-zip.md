@@ -8,7 +8,7 @@ La solución tiene tres funciones Lambda: `api` y `loader` en Node.js 24, y `aut
 
 ## Decisión
 
-Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional por lenguaje (`archive_file` sobre `placeholder/`) que siempre lanza una excepción, e ignora los cambios posteriores de su código (`ignore_changes`). Por su parte, el pipeline `lambdas.yml` despliega el código real: un script arma cada ZIP con `services/<función>/src` y, en `api` y `loader`, agrega `services/common` y sus dependencias de producción.
+Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional por función (`archive_file` sobre `placeholder/<función>`) e ignora los cambios posteriores de su código (`ignore_changes`). En ese código provisional, `authorizer` y `loader` siempre lanzan una excepción, y `api` responde 200 con un JSON fijo (`{"status":"placeholder"}`), sin tocar datos y fuera del contrato. Por su parte, el pipeline `lambdas.yml` despliega el código real: un script arma cada ZIP con `services/<función>/src` y, en `api` y `loader`, agrega `services/common` y sus dependencias de producción.
 
 ## Alternativas consideradas
 
@@ -21,11 +21,11 @@ Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional 
 
 - No hay registro de imágenes ni construcción de imágenes que mantener.
 - La infraestructura y las funciones se despliegan por separado (ADR-0012).
-- El código provisional no concede acceso.
+- El código provisional no concede acceso, porque el `authorizer` provisional lanza una excepción y las dos únicas rutas exigen authorizer.
 
 **Negativas**
 
-- Si Terraform recrea una función, vuelve el código provisional y hay que ejecutar `lambdas.yml` otra vez.
+- Si Terraform recrea una función, vuelve su código provisional y hay que ejecutar `lambdas.yml` otra vez. Si recrea `api` mientras el `authorizer` real está activo, quien tenga una llave válida recibe el JSON fijo hasta esa ejecución.
 - Las funciones no quedan operativas con el primer `terraform apply`: hace falta ejecutar después `lambdas.yml`.
 - Las pruebas locales no ejecutan el mismo artefacto que corre en Lambda.
 - Un CSV subido antes de desplegar el código real se reintenta y se descarta, así que hay que volver a subirlo.

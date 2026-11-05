@@ -1,0 +1,92 @@
+name: infra
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/**"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Acción de Terraform sobre infra/app
+        type: choice
+        options:
+          - apply
+          - recreate-table
+          - destroy
+        default: apply
+
+permissions:
+  contents: read
+
+env:
+  TERRAFORM_VERSION: "1.15.8"
+
+defaults:
+  run:
+    working-directory: infra/app
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - run: terraform fmt -check
+      - run: terraform init -backend=false
+      - run: terraform validate
+
+  terraform:
+    needs: validate
+    # Un dispatch desde otra rama solo valida; el Environment ya rechazaría sus secretos.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: aws
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      # La región solo se fija aquí: AWS_REGION llega al backend y al proveedor.
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - name: terraform init
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: terraform init -input=false -backend-config="bucket=${TF_STATE_BUCKET}"
+      - name: terraform según la acción
+        env:
+          # Un push no trae inputs y solo planea, para revisar el plan antes de lanzar la acción manual.
+          ACTION: ${{ inputs.action || 'plan' }}
+        run: |
+          case "$ACTION" in
+            plan)
+              terraform plan -input=false
+              ;;
+            apply)
+              terraform plan -input=false -out=tfplan
+              terraform apply -input=false tfplan
+              ;;
+            recreate-table)
+              # Sin -target, -replace también aplicaría cualquier otro cambio pendiente.
+              terraform plan -input=false -replace=aws_dynamodb_table.items -target=aws_dynamodb_table.items -out=tfplan
+              terraform apply -input=false tfplan
+              ;;
+            destroy)
+              terraform plan -input=false -destroy -out=tfplan
+              terraform apply -input=false tfplan
+              ;;
+            *)
+              echo "Acción no soportada: $ACTION" >&2
+              exit 1
+              ;;
+          esac

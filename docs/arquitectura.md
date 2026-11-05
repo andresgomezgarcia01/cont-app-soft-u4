@@ -31,7 +31,7 @@ El sistema toma un CSV público, lo carga en una base de datos serverless y lo e
 | O-1 | Cargar el 100 % de los registros conservando estructura y tipos. | El reporte cumple `rows_read = rows_written` con `rows_rejected = 0`, y el conteo en vivo de la consola de DynamoDB coincide con `rows_read`. |
 | O-2 | Encontrar un registro por su identificador. | La consulta responde correctamente en menos de 1 s con la función ya iniciada (RNF-01 fija el arranque en frío). |
 | O-3 | Costo cercano a cero. | DynamoDB se mantiene en su capa gratuita y ningún componente cobra por estar encendido; el resto cuesta centavos ([costos](detalle/despliegue.md#costos)). |
-| O-4 | Infraestructura reproducible y desechable. | `terraform apply` crea la pila `app` y `terraform destroy` la elimina sin pasos manuales (buckets con `force_destroy = true`). Lo creado por el bootstrap se conserva aparte. |
+| O-4 | Infraestructura reproducible y desechable. | La acción `apply` de `infra.yml` crea la pila `app` y la acción `destroy` la elimina, sin más paso manual que lanzarlas (buckets con `force_destroy = true`). Lo creado por el bootstrap se conserva aparte. |
 | O-5 | Trabajo en paralelo. | El frontend se desarrolla en local contra la API desplegada, con la llave; las funciones se prueban localmente sin cuenta de AWS. |
 
 **Requisitos funcionales** (todos de prioridad alta):
@@ -90,7 +90,7 @@ flowchart LR
     usuario -- "Consulta los registros" --> sistema
     operador -- "Descarga el CSV" --> fuente
     operador -- "Sube el CSV a ingesta" --> sistema
-    dev -- "Push / Pull request" --> gh
+    dev -- "Pull request, push<br/>y lanzamiento manual" --> gh
     gh -- "Tres pipelines con llave de usuario IAM" --> sistema
 ```
 
@@ -165,7 +165,7 @@ flowchart TB
 
 ### Despliegue
 
-Se trabaja por pull request. Un push a `main` dispara el pipeline de la carpeta que cambió: `infra/` aplica Terraform, `services/` actualiza el código de las funciones y `frontend/` compila, sincroniza el bucket e invalida CloudFront. Los jobs que despliegan usan la llave del usuario IAM, guardada en el Environment `aws` de GitHub. El detalle y el orden del primer despliegue están en [detalle/despliegue.md](detalle/despliegue.md).
+Se trabaja por pull request. Un push a `main` dispara el pipeline de la carpeta que cambió: `services/` actualiza el código de las funciones y `frontend/` compila, sincroniza el bucket e invalida CloudFront, mientras que `infra/` solo ejecuta `terraform plan`. Terraform aplica únicamente al lanzar `infra.yml` a mano desde `main`, después de revisar ese plan, de modo que `main` puede quedar por delante de lo desplegado. Los jobs que usan AWS toman la llave del usuario IAM, guardada en el Environment `aws` de GitHub. El detalle y el orden del primer despliegue están en [detalle/despliegue.md](detalle/despliegue.md).
 
 ## 6. Riesgos y limitaciones
 

@@ -52,9 +52,9 @@ La solución se despliega en una cuenta de proyecto de AWS; en otro tipo de cuen
 
 1. Ejecutar una vez `scripts/bootstrap.sh`, que crea el bucket de estado y el usuario IAM de despliegue con su política.
 2. [Configurar GitHub](docs/detalle/despliegue.md#configuración-en-github): el Environment `aws`, limitado a `main`, con la llave del usuario en sus secretos, y la variable del repositorio `TF_STATE_BUCKET`.
-3. Lanzar a mano y en orden los workflows `infra.yml`, `lambdas.yml` y `web.yml`.
+3. Lanzar a mano, desde `main` y en orden, los workflows `infra.yml` con la acción `apply`, `lambdas.yml` y `web.yml`.
 
-Después, cada cambio se integra por pull request, y un push a `main` despliega la parte que cambió. La llave de la API la genera Terraform, se guarda en Parameter Store y nunca está en este repositorio. Más detalle en [docs/detalle/despliegue.md](docs/detalle/despliegue.md).
+Después, cada cambio se integra por pull request. Un push a `main` despliega los cambios de `services/` y `frontend/`; en cambio, uno en `infra/` solo genera un plan, y se despliega al lanzar `infra.yml` con la acción `apply` después de revisarlo. La llave de la API la genera Terraform, se guarda en Parameter Store y nunca está en este repositorio. Más detalle en [docs/detalle/despliegue.md](docs/detalle/despliegue.md).
 
 ## Carga y verificación de datos
 
@@ -66,7 +66,7 @@ Después, cada cambio se integra por pull request, y un push a `main` despliega 
 
 ## Destrucción del ambiente
 
-Lanzar a mano `infra.yml` con la opción `destroy`. Lo creado por el bootstrap se conserva y se elimina aparte. La llave de `eds-github-deploy` se desactiva con `aws iam update-access-key` y se borra con `aws iam delete-access-key`.
+Lanzar a mano, desde `main`, `infra.yml` con la opción `destroy`. Lo creado por el bootstrap se conserva y se elimina aparte. La llave de `eds-github-deploy` se desactiva con `aws iam update-access-key` y se borra con `aws iam delete-access-key`.
 
 ## Fuente de los datos
 
