@@ -25,7 +25,6 @@ Carpetas: `contracts/`, `services/` (`common`, `authorizer`, `api`, `loader`), `
 |---|---|
 | `scripts/bootstrap.sh` | Crea el bucket de estado y el usuario IAM de despliegue con su política. |
 | `scripts/deploy-policy.json` | Permisos del usuario de despliegue. |
-| `scripts/download-dataset.py` | Descarga el CSV de la fuente con la fecha en el nombre. |
 | `scripts/package-lambda.sh` | Arma el ZIP de cada función. `authorizer` usa `services/authorizer/src`; `api` y `loader` usan un solo `handler.mjs`, generado con esbuild, que incluye `services/common` y las dependencias de producción, salvo el AWS SDK del runtime. |
 | `scripts/check-lambda-bundle.mjs` | Carga el handler empaquetado de `api` o `loader` desde una carpeta sin `node_modules`, con un AWS SDK simulado. |
 
@@ -154,7 +153,7 @@ Por lo tanto, un cambio en `infra/` integrado en `main` no se despliega hasta la
 
 Después del bootstrap y de la configuración en GitHub, se ejecutan a mano, desde `main` y en orden `infra.yml` con la acción `apply`, `lambdas.yml` y `web.yml`. Un push no crea la infraestructura, porque `infra.yml` solo planea. Por eso, si el primer push toca las tres carpetas, las ejecuciones de `lambdas.yml` y `web.yml` que dispara pueden fallar o adelantarse, y basta con relanzarlas en este orden después de `apply`.
 
-La carga de datos no es un workflow: un operador descarga el archivo con `scripts/download-dataset.py` o desde el navegador, lo sube a `incoming/`, desde la consola de S3 o con `aws s3 cp`, y consulta el reporte en `reports/` ([verificación](pruebas.md#verificación-de-la-carga)).
+La carga de datos no es un workflow: un operador descarga el archivo desde el navegador o con [`curl`](datos.md#dataset), lo sube a `incoming/`, desde la consola de S3 o con `aws s3 cp`, y consulta el reporte en `reports/` ([verificación](pruebas.md#verificación-de-la-carga)).
 
 ## Costos
 
