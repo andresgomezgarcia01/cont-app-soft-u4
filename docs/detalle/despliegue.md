@@ -125,11 +125,11 @@ EOF
 
 ## Pipelines
 
-Cada componente tiene su pipeline ([ADR-0012](../adr/ADR-0012-pipelines-github-actions.md)), que se dispara cuando cambia su carpeta o de forma manual (`workflow_dispatch`). Así, cada persona despliega desde el repositorio, sin configurar credenciales de AWS en su equipo. En un pull request se valida sin credenciales. En `main`, los jobs que usan AWS declaran `environment: aws`, aunque los pipelines no despliegan igual: un push despliega con `lambdas.yml` y `web.yml`, mientras que `infra.yml` solo planea y aplica únicamente cuando se lanza a mano.
+Cada componente tiene su pipeline ([ADR-0012](../adr/ADR-0012-pipelines-github-actions.md)), que se dispara cuando cambia su carpeta o de forma manual (`workflow_dispatch`); `infra.yml`, además, cuando cambia el propio workflow. Así, cada persona despliega desde el repositorio, sin configurar credenciales de AWS en su equipo. En un pull request se valida sin credenciales. En `main`, los jobs que usan AWS declaran `environment: aws`, aunque los pipelines no despliegan igual: un push despliega con `lambdas.yml` y `web.yml`, mientras que `infra.yml` solo planea y aplica únicamente cuando se lanza a mano.
 
 | Workflow | Se dispara por | En pull request | En `main` |
 |---|---|---|---|
-| `infra.yml` | `infra/**` o manual | `terraform fmt -check`, `terraform init -backend=false` y `terraform validate` | En un push, la misma validación y `terraform plan`, sin aplicar. De forma manual, la misma validación y la [acción](#acciones-manuales-de-infrayml) que indique el parámetro `action` |
+| `infra.yml` | `infra/**`, `.github/workflows/infra.yml` o manual | `terraform fmt -check`, `terraform init -backend=false` y `terraform validate` | En un push, la misma validación y `terraform plan`, sin aplicar. De forma manual, la misma validación y la [acción](#acciones-manuales-de-infrayml) que indique el parámetro `action` |
 | `lambdas.yml` | `services/**` o manual | `npm ci`, `npm run lint` y `npm test` en `api`, `loader` y `common`; `ruff` y `pytest` en `authorizer` | Lo mismo, y actualiza el código de las tres funciones |
 | `web.yml` | `frontend/**` o manual | `npm ci`, `npm run lint` y `npm run build` | Lee la URL de la API con `terraform output`, compila con ella en `VITE_API_BASE_URL`, y ejecuta `aws s3 sync` y la invalidación de CloudFront |
 

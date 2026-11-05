@@ -32,7 +32,7 @@ flowchart LR
 ## Requisitos
 
 - Para desplegar: una cuenta de AWS y permisos para ejecutar los workflows de este repositorio.
-- Para el bootstrap: Bash, AWS CLI y credenciales temporales de administrador.
+- Para el bootstrap: Bash, AWS CLI y credenciales temporales de administrador. Para guardar la llave en GitHub: `gh`.
 - Para trabajar en local, según la parte: Node.js 24, Python 3.13 o Terraform 1.11 o superior.
 
 ## Ejecución local
