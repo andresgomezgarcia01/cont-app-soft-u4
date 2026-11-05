@@ -112,7 +112,7 @@ Es la excepción a las capas, por su tamaño, y la única función en Python: un
 1. **Inicialización fuera del handler.** Los clientes del SDK, el contrato de esquema y los servicios se crean a nivel de módulo, para no repetir ese costo en invocaciones en caliente y reutilizar las conexiones HTTP.
 2. **Clientes con configuración explícita**, con los [valores de la API](errores.md#reintentos-e-idempotencia).
 3. **Sin estado entre invocaciones.** A nivel de módulo solo vive lo inmutable (clientes, contrato) y, en `authorizer`, la copia de la llave con su vencimiento; nunca datos de una petición.
-4. **Configuración desde Terraform.** Los nombres de tabla y buckets llegan por variables de entorno, y el nivel de log por la configuración de logs de la función.
+4. **Configuración desde Terraform.** Las variables de entorno son `TABLE_NAME` (`api`, `loader`), `INGEST_BUCKET_NAME` y `WRITE_RATE_WCU` (`loader`), y `API_KEY_PARAMETER_NAME` (`authorizer`). El nivel de log llega, en cambio, por la configuración de logs de la función.
 5. **Logs estructurados en JSON**, con el [esquema común](logs.md).
 6. **Lectura en streaming** del CSV desde S3 hacia `csv-parse`, sin cargar el archivo completo en memoria.
 7. **Control del tiempo restante.** La carga consulta `context.getRemainingTimeInMillis()` y, si se acerca al límite, escribe un reporte `FAILED` con `TIME_LIMIT_REACHED` y termina sin excepción, porque un reintento repetiría la misma carga.

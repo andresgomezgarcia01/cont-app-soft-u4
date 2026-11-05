@@ -107,10 +107,10 @@ El gateway escribe una línea por petición en su propio grupo de logs, incluida
 
 | Grupo | Retención |
 |---|---|
-| `/aws/lambda/eds-dev-api` | 14 días |
-| `/aws/lambda/eds-dev-loader` | 14 días |
-| `/aws/lambda/eds-dev-authorizer` | 14 días |
-| `/aws/apigateway/eds-dev-api` | 14 días |
+| `/aws/lambda/eds-dev-api` | 7 días |
+| `/aws/lambda/eds-dev-loader` | 7 días |
+| `/aws/lambda/eds-dev-authorizer` | 7 días |
+| `/aws/apigateway/eds-dev-api` | 7 días |
 
 Terraform crea los cuatro grupos y activa en cada función `log_format = "JSON"`.
 
