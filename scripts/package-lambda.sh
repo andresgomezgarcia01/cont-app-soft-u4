@@ -43,7 +43,7 @@ else
     --platform=node \
     --target=node24 \
     --format=esm \
-    '--external:@aws-sdk/*' \
+    --main-fields=module,main \
     "--outfile=${stage}/handler.mjs"
 fi
 

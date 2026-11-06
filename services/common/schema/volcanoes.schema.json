@@ -1,0 +1,28 @@
+
+{
+  "dataset_id": "volcanoes",
+  "primary_key": "Volcano_Number",
+  "columns": [
+    { "name": "FID", "type": "string" },
+    { "name": "Volcano_Number", "type": "integer", "required": true },
+    { "name": "Volcano_Name", "type": "string", "required": true },
+    { "name": "Volcanic_Landform", "type": "string" },
+    { "name": "Primary_Volcano_Type", "type": "string" },
+    { "name": "Last_Eruption_Year", "type": "integer" },
+    { "name": "Country", "type": "string", "required": true },
+    { "name": "Region", "type": "string" },
+    { "name": "Subregion", "type": "string" },
+    { "name": "Geological_Summary", "type": "string" },
+    { "name": "Latitude", "type": "decimal", "required": true },
+    { "name": "Longitude", "type": "decimal", "required": true },
+    { "name": "Elevation", "type": "integer" },
+    { "name": "Tectonic_Setting", "type": "string" },
+    { "name": "Geologic_Epoch", "type": "string" },
+    { "name": "Evidence_Category", "type": "string" },
+    { "name": "Primary_Photo_Link", "type": "string" },
+    { "name": "Primary_Photo_Caption", "type": "string" },
+    { "name": "Primary_Photo_Credit", "type": "string" },
+    { "name": "Major_Rock_Type", "type": "string" },
+    { "name": "GeoLocation", "type": "string" }
+  ]
+}

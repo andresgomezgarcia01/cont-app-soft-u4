@@ -1,0 +1,20 @@
+{
+  "name": "volcano-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1163.0",
+    "@smithy/node-http-handler": "^4.4.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
