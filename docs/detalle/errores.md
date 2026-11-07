@@ -19,10 +19,10 @@ HTTP API no permite personalizar las respuestas que genera el propio gateway, y 
 | 400 | `INVALID_PAGINATION_TOKEN` | Función | `next_token` está mal formado. | Volver a la primera página. |
 | 404 | `ITEM_NOT_FOUND` | Función | El `id` no existe. | Mostrar "sin resultados". |
 | 500 | `INTERNAL_ERROR` | Función | Excepción no controlada; se registra con traza completa y no se exponen detalles. | Mensaje genérico con `request_id`. |
-| 503 | `DEPENDENCY_UNAVAILABLE` | Función | DynamoDB no responde o aplica throttling, tras los reintentos del SDK. | Reintentar con espera. |
+| 503 | `DEPENDENCY_UNAVAILABLE` | Función | DynamoDB no responde o aplica throttling, tras los reintentos del SDK. | Reintentar hasta dos veces adicionales, con esperas de 500 ms y 1.000 ms. |
 | 404 | *(sin código)* | API Gateway | Ruta no definida. Cuerpo `{"message":"Not Found"}`. | Error de programación. |
-| 429 | *(sin código)* | API Gateway | Throttling. Cuerpo `{"message":"Too Many Requests"}`. | Reintentar con espera. |
-| 500, 503 o 504 | *(sin código)* | API Gateway | La función falló, agotó su tiempo o no se pudo invocar. Cuerpo `{"message": ...}`. El código exacto por timeout se confirma en AWS *(verificar)*. | Reintentar con espera. |
+| 429 | *(sin código)* | API Gateway | Throttling. Cuerpo `{"message":"Too Many Requests"}`. | No realiza reintentos automáticos; muestra el error correspondiente. |
+| 500, 503 o 504 | *(sin código)* | API Gateway | La función falló, agotó su tiempo o no se pudo invocar. El código exacto por timeout se confirma en AWS *(verificar)*. | Si recibe HTTP 503, aplica los reintentos configurados; para 500 y 504 no realiza reintentos automáticos. |
 
 ## Errores de la carga
 

@@ -7,7 +7,7 @@ Aplicación web serverless en AWS para consultar el catálogo de volcanes del Ho
 - Infraestructura definida con Terraform y desplegada desde GitHub Actions, con la llave de un usuario IAM guardada en secretos de GitHub.
 - Carga automática al subir el CSV a S3, con validación de tipos, reporte y reintentos.
 - API HTTP de solo lectura: `GET /items` y `GET /items/{id}`.
-- Interfaz web en React que muestra los registros y busca uno por su identificador.
+- Interfaz web en React que permite consultar y explorar el catálogo de volcanes mediante estadísticas, gráficos, mapa interactivo, búsqueda, filtros, paginación y consulta del detalle de cada registro.
 
 Quedan fuera el inicio de sesión, la escritura desde la interfaz y el dominio propio. El detalle está en [docs/arquitectura.md](docs/arquitectura.md).
 
@@ -41,10 +41,12 @@ Las validaciones locales no necesitan credenciales de AWS y son opcionales, porq
 
 | Parte | Comandos |
 |---|---|
-| `frontend/` | `npm ci`, y `npm run dev` con `VITE_API_BASE_URL` apuntando a la API desplegada |
+| `frontend/` | `npm ci`, `npm run dev`, `npm run test`, `npm run lint` y `npm run build`. Para ejecutar `npm run dev`, configurar `VITE_API_BASE_URL` con la URL de la API desplegada. |
 | `services/api`, `services/loader`, `services/common` | `npm ci`, `npm run lint` y `npm test` |
 | `services/authorizer` | `ruff check` y `pytest` |
 | `infra/app` | `terraform fmt -check`, `terraform init -backend=false` y `terraform validate` |
+
+El frontend utiliza `VITE_API_BASE_URL` para identificar la URL de la API desplegada. Durante el acceso, la aplicación solicita la API key al usuario y la conserva en `sessionStorage` durante la sesión del navegador.
 
 ## Despliegue en AWS
 

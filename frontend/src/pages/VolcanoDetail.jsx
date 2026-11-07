@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import MainLayout from '../components/layout/MainLayout';
+import ApiErrorMessage from '../components/common/ApiErrorMessage';
 import { getVolcanoById } from '../services/volcanoService';
 
 function VolcanoDetail() {
@@ -34,7 +35,7 @@ function VolcanoDetail() {
             id,
             volcano: null,
             loading: false,
-            error: err.message || 'No fue posible consultar el volcán.',
+            error: err,
           });
         }
       });
@@ -61,9 +62,11 @@ function VolcanoDetail() {
             Cargando información del volcán...
           </div>
         ) : error ? (
-          <div className="volcano-list__message volcano-list__message--error">
-            {error}
-          </div>
+          <ApiErrorMessage
+            error={error}
+            prefix="No fue posible consultar el volcán:"
+            className="volcano-list__message volcano-list__message--error"
+          />
         ) : !volcano ? (
           <div className="volcano-list__message">
             No se encontró el volcán solicitado.

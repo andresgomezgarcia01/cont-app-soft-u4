@@ -31,7 +31,7 @@ export const useVolcanoes = (filters = {}) => {
       setVolcanoes(result.data);
       setTotal(result.total);
     } catch (err) {
-      setError(err.message || 'Unable to load volcanoes.');
+      setError(err);
     } finally {
       setLoading(false);
     }

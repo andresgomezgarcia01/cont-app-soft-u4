@@ -12,7 +12,8 @@ Las validaciones locales son opcionales, porque los [pipelines](despliegue.md#pi
 | Unitarias | Cada manejador de la cadena, la conversión de tipos, la limitación de ritmo, el enrutador, la validación de parámetros, el mapeo de errores y los campos obligatorios de los [logs](logs.md). | `node:test` |
 | Authorizer | La comparación de la llave, la relectura del parámetro y el fallo al leerlo. | `pytest` + `moto` |
 | Flujo local | El handler de `loader` recibe un evento de notificación de S3 de prueba (con el formato real), lee un CSV de muestra y envía a DynamoDB los ítems esperados. Por separado, el handler de `api` recibe eventos de API Gateway de prueba y responde según el contrato. | `node:test` + `aws-sdk-client-mock` |
-| Frontend | La interfaz, en el servidor local de desarrollo, contra la API desplegada y con una llave. | Navegador |
+| Frontend automatizado | Pruebas del cliente de API, incluyendo respuestas exitosas, errores de autenticación y reintentos ante respuestas HTTP 503. | `Vitest` + `jsdom` |
+| Frontend manual | La interfaz, en el servidor local de desarrollo, contra la API desplegada y con una llave. | Navegador |
 | Extremo a extremo | Carga real, conteo y consultas en AWS. | Reporte de la carga, consola de AWS y pruebas manuales |
 
 `aws-sdk-client-mock` simula las respuestas del AWS SDK dentro de las pruebas de Node.js, y `moto` simula Parameter Store dentro de `pytest`. Los eventos de prueba se guardan como JSON en `services/*/tests/events/`, de modo que también sirven para invocar las funciones desde la consola de Lambda.

@@ -15,25 +15,52 @@ import { getStoredApiKey } from './services/apiClient';
 
 function App() {
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
+  const [networkError, setNetworkError] = useState(false);
+  const [showApiKeyGate, setShowApiKeyGate] = useState(false);
 
   useEffect(() => {
     const handleAuthRequired = () => {
       setApiKey(null);
+      setNetworkError(false);
+      setShowApiKeyGate(false);
+    };
+
+    const handleNetworkError = () => {
+      setNetworkError(true);
     };
 
     window.addEventListener('api-auth-required', handleAuthRequired);
+    window.addEventListener('api-network-error', handleNetworkError);
 
     return () => {
       window.removeEventListener('api-auth-required', handleAuthRequired);
+      window.removeEventListener('api-network-error', handleNetworkError);
     };
   }, []);
 
   const handleAuthenticated = () => {
     setApiKey(getStoredApiKey());
+    setNetworkError(false);
+    setShowApiKeyGate(false);
   };
 
-  if (!apiKey) {
+  if (!apiKey || showApiKeyGate) {
     return <ApiKeyGate onAuthenticated={handleAuthenticated} />;
+  }
+
+  if (networkError) {
+    return (
+      <main style={{ padding: '2rem', textAlign: 'center' }}>
+        <h1>No fue posible conectar con el servicio</h1>
+        <p>Verifica tu conexión e inténtalo nuevamente.</p>
+        <button type="button" onClick={() => {
+          setNetworkError(false);
+          setShowApiKeyGate(true);
+        }}>
+          Volver al ingreso
+        </button>
+      </main>
+    );
   }
 
   return (

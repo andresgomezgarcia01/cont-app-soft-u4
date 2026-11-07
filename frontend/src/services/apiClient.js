@@ -1,12 +1,21 @@
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '');
 
 const API_KEY_STORAGE = 'volcano-explorer-api-key';
 
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [500, 1000];
+
+const wait = (milliseconds) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, code = null, requestId = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
+    this.requestId = requestId;
   }
 }
 
@@ -78,14 +87,33 @@ export const request = async (path, options = {}) => {
     throw new ApiError('API key is required.', 401);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      'x-api-key': apiKey,
-      Accept: 'application/json',
-    },
-  });
+  let response;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    if (attempt > 0) {
+      await wait(RETRY_DELAYS[attempt - 1]);
+    }
+
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'x-api-key': apiKey,
+          Accept: 'application/json',
+        },
+      });
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        window.dispatchEvent(new Event('api-network-error'));
+      }
+      throw error;
+    }
+
+    if (response.status !== 503 || attempt === MAX_RETRIES) {
+      break;
+    }
+  }
 
   if (response.status === 401 || response.status === 403) {
     clearApiKey();
@@ -95,9 +123,17 @@ export const request = async (path, options = {}) => {
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
+    const requestId =
+      body?.error?.request_id ||
+      response.headers?.get('x-request-id') ||
+      response.headers?.get('apigw-requestid') ||
+      null;
+
     throw new ApiError(
       body?.error?.message || 'The API request failed.',
       response.status,
+      body?.error?.code || null,
+      requestId,
     );
   }
 

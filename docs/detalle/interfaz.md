@@ -7,7 +7,7 @@ Son los mínimos que debe cumplir, sin importar cómo se presente. Las vistas, e
 | UI-01 | Pedir la llave al ingresar y no mostrar las demás vistas sin ella. Enviarla en `x-api-key` en cada petición y conservarla solo en `sessionStorage`. Nunca escribirla en el código ni en los estáticos. |
 | UI-02 | Ante un 401 o 403, borrar la llave guardada y volver a pedirla. Si esos errores llegan sin cabeceras CORS, el navegador los muestra como fallo de red, así que un fallo de red en cualquier petición ofrece volver a la pantalla de llave. |
 | UI-03 | Recibir la URL base de la API en la variable de entorno `VITE_API_BASE_URL` al compilar, nunca fija en el código. |
-| UI-04 | Tener los scripts `npm run lint` y `npm run build`, y compilar a estáticos en `dist/`, con `index.html` en la raíz. Los usa el [pipeline](despliegue.md#pipelines). |
+| UI-04 | Tener los scripts `npm run lint`, `npm run test` y `npm run build`, y compilar a estáticos en `dist/`, con `index.html` en la raíz. Los usa el [pipeline](despliegue.md#pipelines). |
 | UI-05 | Mostrar los datos en tablas, gráficas o tarjetas, y permitir buscar un registro por `Volcano_Number`. |
 | UI-06 | Citar la fuente: "Global Volcanism Program, Smithsonian Institution", con enlace a `https://volcano.si.edu`, junto con la cita formal de la base de datos que se registre en [fuente-de-datos.md](../fuente-de-datos.md). |
 | UI-07 | Manejar los estados de carga, vacío y error. Para los errores, decidir por código HTTP y refinar con `error.code` cuando exista ([catálogo](errores.md#errores-de-la-api)). Mostrar el `request_id` en los errores inesperados (5xx): el del cuerpo o, si no viene, el de la cabecera `x-request-id` o `apigw-requestid`. |
@@ -25,3 +25,5 @@ No son requisitos, pero evitan errores frecuentes con estos datos:
 - **Valores.** `Last_Eruption_Year` negativo es un año antes de nuestra era, `null` significa "sin dato", y `0` es un año válido. `Elevation` puede ser negativa (volcanes submarinos). `Country` tiene 88 valores distintos, algunos compartidos, como `Chile-Argentina`.
 - **Fotos.** Las columnas `Primary_Photo_*` no se muestran ([ADR-0015](../adr/ADR-0015-busqueda-por-identificador-sin-imagenes.md)).
 - **Dispositivos.** Basta con que funcione en escritorio; no se exige adaptación a móvil.
+
+- **Búsqueda, filtros y detalle.** La búsqueda por nombre, los filtros y la resolución del detalle se realizan localmente sobre los registros cargados desde la API. Aunque la API ofrece una operación de consulta por identificador, el frontend no utiliza actualmente ese endpoint para mostrar el detalle.

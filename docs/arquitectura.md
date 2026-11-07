@@ -19,7 +19,7 @@ El sistema toma un CSV público, lo carga en una base de datos serverless y lo e
 1. Diseño visual y vistas de la interfaz, a criterio de quien la desarrolle dentro de sus [requisitos](detalle/interfaz.md).
 2. Escritura de datos desde la interfaz, e inicio de sesión y gestión de usuarios ([ADR-0007](adr/ADR-0007-lambda-authorizer-llave-compartida.md)).
 3. Dominio propio; se usa el de CloudFront ([ADR-0005](adr/ADR-0005-cloudfront-bucket-privado.md)).
-4. Búsqueda por nombre, de texto libre o parcial, e imágenes del catálogo ([ADR-0015](adr/ADR-0015-busqueda-por-identificador-sin-imagenes.md)).
+4. Búsqueda por nombre desde la API, de texto libre o parcial, e imágenes del catálogo ([ADR-0015](adr/ADR-0015-busqueda-por-identificador-sin-imagenes.md)).
 5. Redes privadas (VPC): todos los servicios son administrados y se consumen con IAM.
 6. Múltiples ambientes: se diseña para `dev`, aunque el código queda parametrizado por ambiente.
 7. Cola de fallos ([ADR-0006](adr/ADR-0006-ingesta-s3-lambda-asincrona.md)) y agregados precalculados ([ADR-0014](adr/ADR-0014-agregados-precalculados.md)).
@@ -29,7 +29,7 @@ El sistema toma un CSV público, lo carga en una base de datos serverless y lo e
 | Id | Objetivo | Cómo se mide |
 |---|---|---|
 | O-1 | Cargar el 100 % de los registros conservando estructura y tipos. | El reporte cumple `rows_read = rows_written` con `rows_rejected = 0`, y el conteo en vivo de la consola de DynamoDB coincide con `rows_read`. |
-| O-2 | Encontrar un registro por su identificador. | La consulta responde correctamente en menos de 1 s con la función ya iniciada (RNF-01 fija el arranque en frío). |
+| O-2 | Consultar un registro mediante su identificador. | La API responde en menos de 300 ms (p95) con la función ya iniciada, medido en API Gateway. En arranque en frío se aplica el criterio de RNF-01. |
 | O-3 | Costo cercano a cero. | DynamoDB se mantiene en su capa gratuita y ningún componente cobra por estar encendido; el resto cuesta centavos ([costos](detalle/despliegue.md#costos)). |
 | O-4 | Infraestructura reproducible y desechable. | La acción `apply` de `infra.yml` crea la pila `app` y la acción `destroy` la elimina, sin más paso manual que lanzarlas (buckets con `force_destroy = true`). Lo creado por el bootstrap se conserva aparte. |
 | O-5 | Trabajo en paralelo. | El frontend se desarrolla en local contra la API desplegada, con la llave; las funciones se prueban localmente sin cuenta de AWS. |
@@ -179,13 +179,14 @@ Se trabaja por pull request. Un push a `main` dispara el pipeline de la carpeta 
 | Una función que muere sin escribir su reporte (timeout o memoria) y agota los reintentos. | Lambda descarta el evento y el fallo solo queda en los logs. | Se revisan los logs tras cada carga y se vuelve a subir el archivo. |
 | La llave es compartida y no identifica personas; si se filtra, da acceso de lectura. | Lectura no autorizada de datos públicos. | Se rota incrementando `api_key_version`. La anterior puede seguir válida hasta 5 minutos por la caché, y hasta otros 5 por la relectura de la función. |
 
-Limitaciones de la API: el listado no tiene orden garantizado, porque `Scan` recorre la tabla por particiones (la interfaz puede ordenar dentro de la página); no hay total de páginas, por la paginación con token; la búsqueda es solo por identificador exacto; y no hay una operación de agregados, de modo que cualquier resumen se calcula en la interfaz con las páginas que obtenga.
+Limitaciones de la API: el listado no tiene orden garantizado, porque `Scan` recorre la tabla por particiones (la interfaz puede ordenar dentro de la página); no hay total de páginas, por la paginación con token; la API permite consultar registros únicamente por identificador exacto y no ofrece búsqueda por nombre, de texto libre o parcial. El frontend realiza la búsqueda por nombre y los filtros localmente sobre los registros cargados. Tampoco hay una operación de agregados, de modo que cualquier resumen se calcula en la interfaz con las páginas que obtenga.
 
 ## 7. Mapa de la documentación
 
 | Documento | Contenido |
 |---|---|
 | [contracts/openapi.yaml](../contracts/openapi.yaml) | Contrato de la API con ejemplos. Ante cualquier diferencia, manda este archivo. Agregar campos opcionales es compatible; quitar, renombrar o cambiar un tipo exige acordarlo y actualizarlo primero. |
+| [frontend/README.md](../frontend/README.md) | Descripción del frontend, funcionalidades, tecnologías, configuración, ejecución, pruebas y compilación. |
 | [adr/README.md](adr/README.md) | Decisiones de arquitectura, con alternativas y motivo. |
 | [detalle/datos.md](detalle/datos.md) | Dataset, tabla, tipos, contrato de esquema y reporte. |
 | [detalle/errores.md](detalle/errores.md) | Formato y catálogos de errores, reintentos e idempotencia. |

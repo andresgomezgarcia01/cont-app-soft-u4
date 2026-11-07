@@ -131,7 +131,7 @@ Cada componente tiene su pipeline ([ADR-0012](../adr/ADR-0012-pipelines-github-a
 |---|---|---|---|
 | `infra.yml` | `infra/**`, `.github/workflows/infra.yml` o manual | `terraform fmt -check`, `terraform init -backend=false` y `terraform validate` | En un push, la misma validación y `terraform plan`, sin aplicar. De forma manual, la misma validación y la [acción](#acciones-manuales-de-infrayml) que indique el parámetro `action` |
 | `lambdas.yml` | `services/**`, `scripts/package-lambda.sh`, `scripts/check-lambda-bundle.mjs`, `.github/workflows/lambdas.yml` o manual | `npm ci`, `npm run lint` y `npm test` en `api`, `loader` y `common`; `ruff` y `pytest` en `authorizer`, solo en las carpetas que existan | Lo mismo, y actualiza el código de las funciones cuya carpeta exista |
-| `web.yml` | `frontend/**`, `.github/workflows/web.yml` o manual | `npm ci`, `npm run lint` y `npm run build` | Lee la URL de la API con `terraform output`, compila con ella en `VITE_API_BASE_URL`, y ejecuta `aws s3 sync` y la invalidación de CloudFront |
+| `web.yml` | `frontend/**`, `.github/workflows/web.yml` o manual | `npm ci`, `npm run lint`, `npm run test` y `npm run build` | Lee la URL de la API con `terraform output`, compila con ella en `VITE_API_BASE_URL`, y ejecuta `aws s3 sync` y la invalidación de CloudFront |
 
 Con un repositorio público, los runners estándar de GitHub Actions no tienen costo.
 
