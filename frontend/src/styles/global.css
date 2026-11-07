@@ -1,0 +1,27 @@
+/* MAIN LAYOUT */
+
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - 68px);
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 32px;
+  background-color: #f3f5f7;
+}
+
+/* SIDEBAR */
+
+.sidebar {
+  flex: 0 0 240px;
+  width: 240px;
+}

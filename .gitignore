@@ -9,6 +9,8 @@
 !.github/**
 !contracts/
 !contracts/**
+!data/
+!data/**
 !docs/
 !docs/**
 !frontend/
