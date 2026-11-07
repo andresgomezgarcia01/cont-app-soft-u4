@@ -189,6 +189,22 @@ function Guide() {
           </p>
 
           <div className="guide__notice">
+            <strong>Fuente de datos</strong>
+            <p>
+              La información del catálogo proviene del Global Volcanism
+              Program del Smithsonian Institution, que recopila y
+              documenta información sobre volcanes del mundo.
+            </p>
+            <a
+              href="https://volcano.si.edu"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Global Volcanism Program - Smithsonian Institution
+            </a>
+          </div>
+
+          <div className="guide__notice">
             <strong>Consulta de información</strong>
             <p>
               La aplicación obtiene los registros mediante una API

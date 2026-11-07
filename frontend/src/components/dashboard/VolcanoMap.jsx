@@ -1,6 +1,4 @@
-
 import { useEffect, useState } from 'react';
-
 import {
   MapContainer,
   TileLayer,
@@ -13,7 +11,21 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 
+// Importación explícita de los iconos de Leaflet para producción con Vite.
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
 import { getAllVolcanoesForMap } from '../../services/volcanoService';
+
+// Configuración de las rutas de los iconos predeterminados de Leaflet.
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 function MapResizeHandler() {
   const map = useMap();

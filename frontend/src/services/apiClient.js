@@ -1,6 +1,13 @@
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '');
 
 const API_KEY_STORAGE = 'volcano-explorer-api-key';
+
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [500, 1000];
+
+const wait = (milliseconds) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -78,14 +85,26 @@ export const request = async (path, options = {}) => {
     throw new ApiError('API key is required.', 401);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      'x-api-key': apiKey,
-      Accept: 'application/json',
-    },
-  });
+  let response;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    if (attempt > 0) {
+      await wait(RETRY_DELAYS[attempt - 1]);
+    }
+
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'x-api-key': apiKey,
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.status !== 503 || attempt === MAX_RETRIES) {
+      break;
+    }
+  }
 
   if (response.status === 401 || response.status === 403) {
     clearApiKey();
