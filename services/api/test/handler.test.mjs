@@ -1,8 +1,11 @@
-
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { handler } from "../src/handler.mjs";
+import {
+  createHandler,
+  processEvent,
+} from "../src/handler.mjs";
+
 import {
   InvalidParameterError,
   ItemNotFoundError,
@@ -30,7 +33,7 @@ describe("API handler", () => {
       queryStringParameters: null,
     };
 
-    const response = await handler(event, service);
+    const response = await processEvent(event, service);
 
     assert.equal(response.statusCode, 200);
     assert.equal(
@@ -75,7 +78,7 @@ describe("API handler", () => {
       },
     };
 
-    const response = await handler(event, service);
+    const response = await processEvent(event, service);
 
     assert.equal(response.statusCode, 200);
 
@@ -104,7 +107,7 @@ describe("API handler", () => {
       },
     };
 
-    const response = await handler(event, service);
+    const response = await processEvent(event, service);
     const body = JSON.parse(response.body);
 
     assert.equal(response.statusCode, 400);
@@ -130,7 +133,7 @@ describe("API handler", () => {
       },
     };
 
-    const response = await handler(event, service);
+    const response = await processEvent(event, service);
     const body = JSON.parse(response.body);
 
     assert.equal(response.statusCode, 404);
@@ -148,7 +151,7 @@ describe("API handler", () => {
       },
     };
 
-    const response = await handler(event, service);
+    const response = await processEvent(event, service);
     const body = JSON.parse(response.body);
 
     assert.equal(response.statusCode, 400);
@@ -170,14 +173,13 @@ describe("API handler", () => {
       },
     };
 
-    const response = await handler(event, service);
+    const response = await processEvent(event, service);
     const body = JSON.parse(response.body);
 
     assert.equal(response.statusCode, 500);
     assert.equal(body.error.code, "INTERNAL_ERROR");
     assert.equal(body.error.request_id, "request-500");
 
-    // Internal error details must not be exposed to the client.
     assert.notEqual(
       body.error.message,
       "Unexpected database error",
@@ -201,10 +203,53 @@ describe("API handler", () => {
       },
     };
 
-    const response = await handler(event, service);
+    const response = await processEvent(event, service);
     const body = JSON.parse(response.body);
 
     assert.equal(response.statusCode, 500);
     assert.equal(body.error.code, "INTERNAL_ERROR");
+  });
+
+  it("handles an AWS Lambda invocation with event and context", async () => {
+    let serviceCalled = false;
+
+    const service = {
+      async getAll() {
+        serviceCalled = true;
+
+        return {
+          data: [],
+          page: {
+            limit: 25,
+            next_token: null,
+          },
+        };
+      },
+    };
+
+    const lambdaHandler = createHandler(() => service);
+
+    const event = {
+      routeKey: "GET /items",
+      requestContext: {
+        requestId: "aws-request-123",
+      },
+      queryStringParameters: null,
+    };
+
+    const context = {
+      awsRequestId: "lambda-context-123",
+    };
+
+    const response = await lambdaHandler(event, context);
+    const body = JSON.parse(response.body);
+
+    assert.equal(serviceCalled, true);
+    assert.equal(response.statusCode, 200);
+    assert.equal(body.data.length, 0);
+    assert.equal(
+      response.headers["x-request-id"],
+      "aws-request-123",
+    );
   });
 });

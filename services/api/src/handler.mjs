@@ -1,4 +1,3 @@
-
 import { VolcanoRepository } from "./repository.mjs";
 import { VolcanoService } from "./service.mjs";
 
@@ -6,12 +5,12 @@ import { getApiConfig } from "../../common/config.mjs";
 import { log } from "../../common/logs.mjs";
 import {
   successResponse,
-  errorResponse
+  errorResponse,
 } from "../../common/responses.mjs";
 
 import {
   AppError,
-  InternalError
+  InternalError,
 } from "../../common/errors.mjs";
 
 let defaultService;
@@ -31,19 +30,20 @@ const routes = {
   "GET /items": async (event, service) => {
     return service.getAll({
       limit: event.queryStringParameters?.limit,
-      nextToken: event.queryStringParameters?.next_token
+      nextToken: event.queryStringParameters?.next_token,
     });
   },
 
   "GET /items/{id}": async (event, service) => {
     return service.getById(event.pathParameters?.id);
-  }
+  },
 };
 
-export async function handler(event, service) {
+export async function processEvent(event, service) {
   const startTime = Date.now();
   const requestId = event.requestContext?.requestId;
   const route = event.routeKey ?? "UNKNOWN";
+
   let statusCode = 500;
   let errorCode;
 
@@ -54,23 +54,24 @@ export async function handler(event, service) {
       throw new AppError(
         "INVALID_PARAMETER",
         "The requested route is not supported.",
-        400
+        400,
       );
     }
 
-  const activeService = service ?? getDefaultService();
-  const data = await routeHandler(event, activeService);
+    const data = await routeHandler(event, service);
     statusCode = 200;
 
     return successResponse(data, requestId);
   } catch (error) {
-    const appError = error instanceof AppError ? error : new InternalError();
+    const appError = error instanceof AppError
+      ? error
+      : new InternalError();
+
     statusCode = appError.statusCode;
     errorCode = appError.code;
 
     return errorResponse(appError, requestId);
-  }
-  finally {
+  } finally {
     const logFields = {
       service: "api",
       correlation_id: requestId,
@@ -91,3 +92,11 @@ export async function handler(event, service) {
     );
   }
 }
+
+export function createHandler(serviceFactory = getDefaultService) {
+  return async function lambdaHandler(event) {
+    return processEvent(event, serviceFactory());
+  };
+}
+
+export const handler = createHandler();
