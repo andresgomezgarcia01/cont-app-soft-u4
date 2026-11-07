@@ -1,4 +1,3 @@
-
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -22,10 +21,9 @@ ChartJS.register(
   Title
 );
 
-function VolcanoCharts({ statistics }) {
-  // Preparamos los datos de volcanes por país.
-  // Mostramos únicamente los 10 países con más volcanes.
+function VolcanoCharts({ statistics, loading, error }) {
   const countries = statistics?.countries?.slice(0, 10) || [];
+  const types = statistics?.types || [];
 
   const countryData = {
     labels: countries.map((country) => country.name),
@@ -38,9 +36,6 @@ function VolcanoCharts({ statistics }) {
       },
     ],
   };
-
-  // Preparamos la distribución por tipo de volcán.
-  const types = statistics?.types || [];
 
   const typeData = {
     labels: types.map((type) => type.name),
@@ -92,6 +87,14 @@ function VolcanoCharts({ statistics }) {
     },
   };
 
+  const getMessage = (hasData) => {
+    if (loading) return 'Cargando gráfica...';
+    if (error) return 'No fue posible cargar esta información.';
+    if (!hasData) return 'No hay información disponible.';
+
+    return null;
+  };
+
   return (
     <section className="dashboard__charts">
       <article className="chart-card">
@@ -101,10 +104,10 @@ function VolcanoCharts({ statistics }) {
         </div>
 
         <div className="chart-card__content chart-card__content--bar">
-          {countries.length > 0 ? (
+          {countries.length > 0 && !error ? (
             <Bar data={countryData} options={countryOptions} />
           ) : (
-            <p>No hay información disponible.</p>
+            <p>{getMessage(false)}</p>
           )}
         </div>
       </article>
@@ -116,10 +119,10 @@ function VolcanoCharts({ statistics }) {
         </div>
 
         <div className="chart-card__content chart-card__content--doughnut">
-          {types.length > 0 ? (
+          {types.length > 0 && !error ? (
             <Doughnut data={typeData} options={typeOptions} />
           ) : (
-            <p>No hay información disponible.</p>
+            <p>{getMessage(false)}</p>
           )}
         </div>
       </article>
