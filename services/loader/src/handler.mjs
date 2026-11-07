@@ -43,7 +43,7 @@ function getSourceKey(record) {
   return decodeURIComponent(encodedKey.replace(/\+/g, " "));
 }
 
-export async function handler(event, context, service) {
+async function processEvent(event, context, service) {
   const records = event?.Records;
 
   if (!Array.isArray(records) || records.length === 0) {
@@ -69,3 +69,9 @@ export async function handler(event, context, service) {
     summaries
   };
 }
+
+export async function handler(event, context) {
+  return processEvent(event, context, getDefaultService());
+}
+
+export { processEvent };
