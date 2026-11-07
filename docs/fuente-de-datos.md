@@ -12,7 +12,7 @@
 
 Para citar el conjunto de datos utilizado, se emplea la referencia publicada por el Global Volcanism Program:
 
-> Global Volcanism Program, 2026. [Database] Volcanoes of the World (v. 5.4.0; 7 Aug 2026). Distributed by Smithsonian Institution, compiled by Venzke, E. https://doi.org/10.5479/si.GVP.VOTW5-2026.5.4
+> Global Volcanism Program, 2026. [Database] Volcanoes of the World (v. 5.4.0; 7 Aug 2026). Distributed by Smithsonian Institution, compiled by Venzke, E. https://volcano.si.edu/database/
 
 La versión y fecha corresponden a la publicación vigente al momento de la consulta. Si se utiliza una versión diferente del conjunto de datos, debe actualizarse la referencia.
 

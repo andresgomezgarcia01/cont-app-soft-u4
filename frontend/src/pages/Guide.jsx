@@ -216,11 +216,11 @@ function Guide() {
             </p>
 
             <a
-              href="https://doi.org/10.5479/si.GVP.VOTW5-2026.5.4"
+              href="https://volcano.si.edu/database/"
               target="_blank"
               rel="noopener noreferrer"
             >
-              https://doi.org/10.5479/si.GVP.VOTW5-2026.5.4
+              https://volcano.si.edu/database/
             </a>
           </div>
 
