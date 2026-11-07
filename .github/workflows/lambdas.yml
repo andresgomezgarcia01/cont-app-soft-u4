@@ -78,7 +78,7 @@ jobs:
           done
       - name: Carga los handlers empaquetados
         run: |
-          for function in api loader; do
+          for function in $FUNCTIONS; do
             if [[ ! -d "services/$function" ]]; then
               echo "services/$function no existe; se omite."
               continue

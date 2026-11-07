@@ -9,6 +9,7 @@ const SDK_PREFIX = "@aws-sdk/";
 const STUB_SCHEME = "sdk-stub:";
 
 const zipPath = process.argv[2];
+
 if (!zipPath) {
   console.error("Uso: node scripts/check-lambda-bundle.mjs <zip>");
   process.exit(1);
@@ -16,36 +17,78 @@ if (!zipPath) {
 
 const directory = mkdtempSync(join(tmpdir(), "lambda-bundle-"));
 process.on("exit", () => rmSync(directory, { recursive: true, force: true }));
+
 execFileSync("unzip", ["-q", resolve(zipPath), "-d", directory]);
 
 const files = readdirSync(directory);
-if (files.length !== 1 || files[0] !== "handler.mjs") {
-  throw new Error(`El ZIP debe contener solo handler.mjs y contiene: ${files.join(", ")}`);
+
+if (files.length !== 1 || !["handler.mjs", "handler.py"].includes(files[0])) {
+  throw new Error(
+    `El ZIP debe contener solo handler.mjs o handler.py y contiene: ${files.join(", ")}`
+  );
 }
 
+// Validación de Authorizer (Python).
+if (files[0] === "handler.py") {
+  const handlerPath = join(directory, "handler.py");
+
+  const pythonCheck = `
+import ast
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source_file:
+    tree = ast.parse(source_file.read())
+
+functions = [
+    node.name
+    for node in tree.body
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+]
+
+if "handler" not in functions:
+    raise SystemExit("handler.py no contiene la función handler")
+`;
+
+  execFileSync("python3", ["-c", pythonCheck, handlerPath], {
+    stdio: "inherit",
+  });
+
+  console.log(`${zipPath}: estructura, sintaxis y handler Python validados`);
+  process.exit(0);
+}
+
+// Validación de API y Loader (Node.js).
 const handlerPath = join(directory, "handler.mjs");
 const bundle = readFileSync(handlerPath, "utf8");
 
-// Un módulo ES no enlaza si falta una exportación, así que el simulado declara las que el bundle importa.
 function importedNames(specifier) {
   const names = new Set();
-  for (const match of bundle.matchAll(/import\s+(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from\s*"([^"]+)"/g)) {
+
+  for (const match of bundle.matchAll(
+    /import\s+(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from\s*"([^"]+)"/g
+  )) {
     if (match[2] === specifier) {
       for (const name of match[1].split(",")) {
         names.add(name.trim().split(/\s+as\s+/)[0]);
       }
     }
   }
+
   names.delete("");
   names.delete("default");
+
   return [...names];
 }
 
 function stubSource(specifier) {
-  const exports = importedNames(specifier).map((name) => `export const ${name} = stub;`);
+  const exports = importedNames(specifier).map(
+    (name) => `export const ${name} = stub;`
+  );
+
   return `
     const stub = new Proxy(function () {}, {
-      get: (_target, property) => (typeof property === "symbol" || property === "then" ? undefined : stub),
+      get: (_target, property) =>
+        typeof property === "symbol" || property === "then" ? undefined : stub,
       apply: () => stub,
       construct: () => stub,
     });
@@ -57,10 +100,15 @@ function stubSource(specifier) {
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier.startsWith(SDK_PREFIX)) {
-      return { url: `${STUB_SCHEME}${specifier}`, shortCircuit: true };
+      return {
+        url: `${STUB_SCHEME}${specifier}`,
+        shortCircuit: true,
+      };
     }
+
     return nextResolve(specifier, context);
   },
+
   load(url, context, nextLoad) {
     if (url.startsWith(STUB_SCHEME)) {
       return {
@@ -69,11 +117,11 @@ registerHooks({
         shortCircuit: true,
       };
     }
+
     return nextLoad(url, context);
   },
 });
 
-// Las funciones leen su configuración al iniciar; Terraform la entrega en AWS.
 Object.assign(process.env, {
   AWS_REGION: "us-east-2",
   TABLE_NAME: "bundle-check",
@@ -82,6 +130,7 @@ Object.assign(process.env, {
 });
 
 const loaded = await import(pathToFileURL(handlerPath).href);
+
 if (typeof loaded.handler !== "function") {
   throw new Error("handler.mjs no exporta la función handler");
 }

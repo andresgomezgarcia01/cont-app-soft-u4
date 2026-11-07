@@ -6,7 +6,7 @@ import { VolcanoService } from "../src/service.mjs";
 
 function createRepository(items = []) {
   return {
-    async findAll(limit, exclusiveStartKey) {
+    async findAll(limit) {
       return {
         items: items.slice(0, limit),
         lastEvaluatedKey: null

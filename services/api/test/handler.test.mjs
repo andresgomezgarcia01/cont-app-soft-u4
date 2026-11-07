@@ -4,10 +4,8 @@ import assert from "node:assert/strict";
 
 import { handler } from "../src/handler.mjs";
 import {
-  AppError,
   InvalidParameterError,
   ItemNotFoundError,
-  InternalError,
 } from "../../common/errors.mjs";
 
 describe("API handler", () => {
