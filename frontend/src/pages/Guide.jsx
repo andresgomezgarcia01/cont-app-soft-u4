@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 
@@ -195,12 +196,31 @@ function Guide() {
               Program del Smithsonian Institution, que recopila y
               documenta información sobre volcanes del mundo.
             </p>
+
             <a
               href="https://volcano.si.edu"
               target="_blank"
               rel="noopener noreferrer"
             >
               Global Volcanism Program - Smithsonian Institution
+            </a>
+
+            <p>
+              <strong>Referencia bibliográfica</strong>
+            </p>
+
+            <p>
+              Global Volcanism Program, 2026. [Database] Volcanoes of the
+              World (v. 5.4.0; 7 Aug 2026). Distributed by Smithsonian
+              Institution, compiled by Venzke, E.
+            </p>
+
+            <a
+              href="https://doi.org/10.5479/si.GVP.VOTW5-2026.5.4"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              https://doi.org/10.5479/si.GVP.VOTW5-2026.5.4
             </a>
           </div>
 

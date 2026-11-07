@@ -149,6 +149,23 @@ describe('apiClient - reintentos HTTP 503', () => {
     expect(sessionStorage.getItem('volcano-explorer-api-key')).toBeNull();
   });
 
+
+  it('notifica los fallos de red y conserva la API key', async () => {
+    fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    const networkEvent = vi.fn();
+    window.addEventListener('api-network-error', networkEvent);
+
+    await expect(request('/items')).rejects.toThrow('Failed to fetch');
+
+    expect(networkEvent).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem('volcano-explorer-api-key')).toBe(
+      'test-api-key',
+    );
+
+    window.removeEventListener('api-network-error', networkEvent);
+  });
+
   it('no reintenta cuando recibe un error 500', async () => {
     fetch.mockResolvedValueOnce(errorResponse(500));
 

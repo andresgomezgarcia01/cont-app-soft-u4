@@ -1,6 +1,7 @@
 import StatCard from '../components/dashboard/StatCard';
 import { useStatistics } from '../hooks/useStatistics';
 import MainLayout from '../components/layout/MainLayout';
+import ApiErrorMessage from '../components/common/ApiErrorMessage';
 import VolcanoCharts from '../components/dashboard/VolcanoCharts';
 import VolcanoMap from '../components/dashboard/VolcanoMap';
 
@@ -62,9 +63,10 @@ function Dashboard() {
         </section>
 
         {error ? (
-          <p role="alert">
-            No fue posible cargar las estadísticas: {error}
-          </p>
+          <ApiErrorMessage
+            error={error}
+            prefix="No fue posible cargar las estadísticas:"
+          />
         ) : null}
 
         <VolcanoCharts

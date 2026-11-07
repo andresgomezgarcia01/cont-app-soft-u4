@@ -17,6 +17,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 import { getAllVolcanoesForMap } from '../../services/volcanoService';
+import ApiErrorMessage from '../common/ApiErrorMessage';
 
 // Configuración de las rutas de los iconos predeterminados de Leaflet.
 delete L.Icon.Default.prototype._getIconUrl;
@@ -105,7 +106,7 @@ function VolcanoMap() {
         }
       } catch (err) {
         if (active) {
-          setError(err.message);
+          setError(err);
         }
       } finally {
         if (active) {
@@ -134,7 +135,10 @@ function VolcanoMap() {
       {loading && <p>Cargando volcanes...</p>}
 
       {error && (
-        <p>No fue posible cargar los volcanes: {error}</p>
+        <ApiErrorMessage
+          error={error}
+          prefix="No fue posible cargar los volcanes:"
+        />
       )}
 
       <div className="volcano-map__container">

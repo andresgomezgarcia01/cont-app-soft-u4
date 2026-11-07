@@ -10,10 +10,12 @@ const wait = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, code = null, requestId = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
+    this.requestId = requestId;
   }
 }
 
@@ -92,14 +94,21 @@ export const request = async (path, options = {}) => {
       await wait(RETRY_DELAYS[attempt - 1]);
     }
 
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        ...options.headers,
-        'x-api-key': apiKey,
-        Accept: 'application/json',
-      },
-    });
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'x-api-key': apiKey,
+          Accept: 'application/json',
+        },
+      });
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        window.dispatchEvent(new Event('api-network-error'));
+      }
+      throw error;
+    }
 
     if (response.status !== 503 || attempt === MAX_RETRIES) {
       break;
@@ -114,9 +123,17 @@ export const request = async (path, options = {}) => {
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
+    const requestId =
+      body?.error?.request_id ||
+      response.headers?.get('x-request-id') ||
+      response.headers?.get('apigw-requestid') ||
+      null;
+
     throw new ApiError(
       body?.error?.message || 'The API request failed.',
       response.status,
+      body?.error?.code || null,
+      requestId,
     );
   }
 

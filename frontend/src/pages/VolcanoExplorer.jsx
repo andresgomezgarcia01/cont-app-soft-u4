@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import MainLayout from '../components/layout/MainLayout';
+import ApiErrorMessage from '../components/common/ApiErrorMessage';
 import Filters from '../components/dashboard/Filters';
 import { useVolcanoes } from '../hooks/useVolcanoes';
 import { getFilterOptions } from '../services/volcanoService';
@@ -40,7 +41,7 @@ function VolcanoExplorer() {
       })
       .catch((err) => {
         if (active) {
-          setOptionsError(err.message || 'No fue posible cargar los filtros.');
+          setOptionsError(err);
         }
       });
 
@@ -98,9 +99,11 @@ function VolcanoExplorer() {
         />
 
         {optionsError && (
-          <p className="volcano-explorer__notice">
-            No fue posible cargar algunas opciones de filtro: {optionsError}
-          </p>
+          <ApiErrorMessage
+            error={optionsError}
+            prefix="No fue posible cargar algunas opciones de filtro:"
+            className="volcano-explorer__notice"
+          />
         )}
 
         <section className="volcano-list">
@@ -120,9 +123,11 @@ function VolcanoExplorer() {
               Cargando volcanes...
             </div>
           ) : error ? (
-            <div className="volcano-list__message volcano-list__message--error">
-              No fue posible cargar los volcanes: {error}
-            </div>
+            <ApiErrorMessage
+              error={error}
+              prefix="No fue posible cargar los volcanes:"
+              className="volcano-list__message volcano-list__message--error"
+            />
           ) : volcanoes.length === 0 ? (
             <div className="volcano-list__message">
               No se encontraron volcanes con los criterios seleccionados.

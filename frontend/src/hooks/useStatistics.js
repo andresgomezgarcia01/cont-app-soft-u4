@@ -15,7 +15,7 @@ export const useStatistics = () => {
         if (active) setStatistics(result);
       } catch (err) {
         if (active) {
-          setError(err.message || 'Unable to load statistics.');
+          setError(err);
         }
       } finally {
         if (active) setLoading(false);
