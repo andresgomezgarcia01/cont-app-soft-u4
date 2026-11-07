@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { handler } from "../src/handler.mjs";
+import { processEvent } from "../src/handler.mjs";
 
 function createEvent(keys) {
   return {
@@ -33,7 +33,7 @@ test("processes an S3 record using the injected service", async () => {
     awsRequestId: "request-123"
   };
 
-  const result = await handler(
+  const result = await processEvent(
     createEvent(["incoming/volcanoes.csv"]),
     context,
     service
@@ -55,7 +55,7 @@ test("decodes spaces and encoded characters in S3 object keys", async () => {
     }
   };
 
-  await handler(
+  await processEvent(
     createEvent(["incoming/volcano+data%2B2026.csv"]),
     {},
     service
@@ -77,7 +77,7 @@ test("processes multiple S3 records sequentially", async () => {
     }
   };
 
-  const result = await handler(
+  const result = await processEvent(
     createEvent([
       "incoming/first.csv",
       "incoming/second.csv"
@@ -97,16 +97,18 @@ test("processes multiple S3 records sequentially", async () => {
 
 test("rejects events without S3 records", async () => {
   await assert.rejects(
-    () => handler({ Records: [] }, {}, {
-      process: async () => ({})
-    }),
+    () => processEvent(
+      { Records: [] },
+      {},
+      { process: async () => ({}) }
+    ),
     /at least one S3 record/
   );
 });
 
 test("rejects records without an object key", async () => {
   await assert.rejects(
-    () => handler(
+    () => processEvent(
       { Records: [{ s3: { object: {} } }] },
       {},
       { process: async () => ({}) }
@@ -117,7 +119,7 @@ test("rejects records without an object key", async () => {
 
 test("rejects invalid URL encoding in an object key", async () => {
   await assert.rejects(
-    () => handler(
+    () => processEvent(
       createEvent(["incoming/invalid%ZZ.csv"]),
       {},
       { process: async () => ({}) }
@@ -136,7 +138,7 @@ test("propagates processing errors", async () => {
   };
 
   await assert.rejects(
-    () => handler(
+    () => processEvent(
       createEvent(["incoming/volcanoes.csv"]),
       {},
       service
@@ -161,7 +163,7 @@ test("stops processing subsequent records after an error", async () => {
   };
 
   await assert.rejects(
-    () => handler(
+    () => processEvent(
       createEvent([
         "incoming/first.csv",
         "incoming/second.csv"
