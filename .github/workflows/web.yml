@@ -1,0 +1,93 @@
+name: web
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/web.yml"
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  TERRAFORM_VERSION: "1.15.8"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: frontend
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  deploy:
+    needs: validate
+    # Un dispatch desde otra rama solo valida; el Environment ya rechazaría sus secretos.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: aws
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          # El wrapper agrega texto a la salida de terraform y ensuciaría los valores leídos.
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - name: Lee las salidas de Terraform
+        id: terraform
+        working-directory: infra/app
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          terraform init -input=false -backend-config="bucket=${TF_STATE_BUCKET}"
+          for name in api_url web_bucket_name cloudfront_distribution_id; do
+            value="$(terraform output -raw "$name")"
+            if [[ -z "$value" ]]; then
+              echo "La salida $name de Terraform está vacía." >&2
+              exit 1
+            fi
+            echo "$name=$value" >> "$GITHUB_OUTPUT"
+          done
+      - run: npm ci
+      - name: Compila con la URL de la API
+        env:
+          VITE_API_BASE_URL: ${{ steps.terraform.outputs.api_url }}
+        run: npm run build
+      - name: Sincroniza el bucket del sitio
+        env:
+          WEB_BUCKET_NAME: ${{ steps.terraform.outputs.web_bucket_name }}
+        run: aws s3 sync dist "s3://${WEB_BUCKET_NAME}" --delete
+      - name: Invalida la caché de CloudFront
+        env:
+          DISTRIBUTION_ID: ${{ steps.terraform.outputs.cloudfront_distribution_id }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$DISTRIBUTION_ID" \
+            --paths "/*" \
+            --query Invalidation.Id \
+            --output text
