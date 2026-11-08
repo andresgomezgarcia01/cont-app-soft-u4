@@ -32,4 +32,4 @@ Este control no autentica personas: la llave identifica a quien la tiene, no qui
 **Negativas**
 
 - La llave es compartida: si se filtra, da acceso de lectura. Se mitiga rotándola, aunque la anterior puede seguir válida hasta 5 minutos por la caché y hasta otros 5 por la relectura de la función.
-- Se suma una función que mantener, y falta confirmar el costo del cifrado del parámetro *(verificar)*.
+- Se suma una función que mantener.

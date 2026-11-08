@@ -4,11 +4,11 @@
 
 ## Contexto
 
-La solución tiene tres funciones Lambda: `api` y `loader` en Node.js 24, y `authorizer` en Python 3.13 (ADR-0016). Usan el AWS SDK incluido en cada runtime, y la única dependencia externa es `csv-parse`, en `loader`. Hay que definir cómo se empaquetan y quién despliega su código, de modo que la infraestructura y las funciones puedan cambiar por separado.
+La solución tiene tres funciones Lambda: `api` y `loader` en Node.js 24, y `authorizer` en Python 3.13 (ADR-0016). `api` y `loader` dependen del AWS SDK v3 y de `@smithy/node-http-handler`, y `loader`, además, de `csv-parse`; `authorizer` usa el boto3 incluido en su runtime. Hay que definir cómo se empaquetan y quién despliega su código, de modo que la infraestructura y las funciones puedan cambiar por separado.
 
 ## Decisión
 
-Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional por función (`archive_file` sobre `placeholder/<función>`) e ignora los cambios posteriores de su código (`ignore_changes`). En ese código provisional, `authorizer` y `loader` siempre lanzan una excepción, y `api` responde 200 con un JSON fijo (`{"status":"placeholder"}`), sin tocar datos y fuera del contrato. Por su parte, el pipeline `lambdas.yml` despliega el código real: un script arma cada ZIP. En `authorizer` usa `services/authorizer/src`. En `api` y `loader` genera con esbuild un solo `handler.mjs`, que incluye `services/common` y las dependencias de producción, salvo el AWS SDK del runtime; el ZIP no lleva `node_modules`.
+Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional por función (`archive_file` sobre `placeholder/<función>`) e ignora los cambios posteriores de su código (`ignore_changes`). En ese código provisional, `authorizer` y `loader` siempre lanzan una excepción, y `api` responde 200 con un JSON fijo (`{"status":"placeholder"}`), sin tocar datos y fuera del contrato. Por su parte, el pipeline `lambdas.yml` despliega el código real: un script arma cada ZIP. En `authorizer` usa `services/authorizer/src`. En `api` y `loader` genera con esbuild un solo `handler.mjs`, que incluye `services/common` y las dependencias de producción, entre ellas el AWS SDK; el ZIP no lleva `node_modules`.
 
 ## Alternativas consideradas
 
@@ -21,6 +21,7 @@ Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional 
 
 - No hay registro de imágenes ni construcción de imágenes que mantener.
 - La infraestructura y las funciones se despliegan por separado (ADR-0012).
+- El AWS SDK de `api` y `loader` va dentro del paquete, como recomienda AWS: su versión la fija `package-lock.json` y no cambia con las actualizaciones del runtime.
 - El código provisional no concede acceso, porque el `authorizer` provisional lanza una excepción y las dos únicas rutas exigen authorizer.
 
 **Negativas**
@@ -29,4 +30,4 @@ Las funciones se empaquetan como ZIP. Terraform las crea con un ZIP provisional 
 - Las funciones no quedan operativas con el primer `terraform apply`: hace falta ejecutar después `lambdas.yml`.
 - Las pruebas locales no ejecutan el mismo artefacto que corre en Lambda.
 - Un CSV subido antes de desplegar el código real se reintenta y se descarta, así que hay que volver a subirlo.
-- AWS recomienda empaquetar el SDK para controlar su versión. Se usa el del runtime, por simplicidad, y a cambio su versión puede cambiar con las actualizaciones del runtime.
+- El paquete de `api` y `loader` es más grande que si usaran el SDK del runtime.

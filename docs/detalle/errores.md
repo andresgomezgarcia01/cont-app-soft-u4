@@ -22,7 +22,7 @@ HTTP API no permite personalizar las respuestas que genera el propio gateway, y 
 | 503 | `DEPENDENCY_UNAVAILABLE` | Función | DynamoDB no responde o aplica throttling, tras los reintentos del SDK. | Reintentar hasta dos veces adicionales, con esperas de 500 ms y 1.000 ms. |
 | 404 | *(sin código)* | API Gateway | Ruta no definida. Cuerpo `{"message":"Not Found"}`. | Error de programación. |
 | 429 | *(sin código)* | API Gateway | Throttling. Cuerpo `{"message":"Too Many Requests"}`. | No realiza reintentos automáticos; muestra el error correspondiente. |
-| 500, 503 o 504 | *(sin código)* | API Gateway | La función falló, agotó su tiempo o no se pudo invocar. Cuerpo `{"message": ...}`. El código exacto por timeout se confirma en AWS *(verificar)*. | Si recibe HTTP 503, aplica los reintentos configurados; para 500 y 504 no realiza reintentos automáticos. |
+| 500, 503 o 504 | *(sin código)* | API Gateway | La función falló, agotó su tiempo o no se pudo invocar. Cuerpo `{"message": ...}`. | Si recibe HTTP 503, aplica los reintentos configurados; para 500 y 504 no realiza reintentos automáticos. |
 
 ## Errores de la carga
 
@@ -51,7 +51,7 @@ La diferencia es deliberada: un error de contenido no se arregla reintentando, y
 
 | Punto | Estrategia |
 |---|---|
-| SDK hacia DynamoDB y S3 | Reintentos en modo `standard` del AWS SDK v3 (espera exponencial con jitter). En la API, `maxAttempts: 2`, con `requestHandler` de 1 s de conexión y 2 s de petición: una dependencia lenta falla en unos 6 s más la espera entre intentos *(verificar)*, por debajo del timeout de 10 s, y la función alcanza a responder `503 DEPENDENCY_UNAVAILABLE`. |
+| SDK hacia DynamoDB y S3 | Reintentos en modo `standard` del AWS SDK v3 (espera exponencial con jitter). En la API, `maxAttempts: 2`, con `requestHandler` de 1 s de conexión y 2 s de petición, para que una dependencia lenta falle antes del timeout de 10 s y la función alcance a responder `503 DEPENDENCY_UNAVAILABLE`. |
 | Ritmo de escritura | El [escritor](funciones.md#carga) se mantiene en 20 WCU/s, para que el throttling sea la excepción. |
 | `BatchWriteItem` | Los `UnprocessedItems` se reintentan con espera exponencial hasta 5 veces; si persisten, `WRITE_FAILED`. |
 | Invocación asíncrona | `maximum_retry_attempts = 2` (1 y 2 minutos después del fallo) y `maximum_event_age_in_seconds = 3600`; luego Lambda descarta el evento. Para reprocesar, se vuelve a subir el archivo. |

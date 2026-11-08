@@ -86,4 +86,6 @@ Cita de la base de datos:
 | [docs/adr/README.md](docs/adr/README.md) | Decisiones de arquitectura, con alternativas y motivo. |
 | [docs/detalle/](docs/detalle/) | Datos, errores, funciones, seguridad, logs, despliegue, pruebas e interfaz. |
 | [contracts/openapi.yaml](contracts/openapi.yaml) | Contrato de la API. |
+| [services/README.md](services/README.md) | Funciones, estructura, validación local y empaquetado. |
+| [frontend/README.md](frontend/README.md) | Interfaz web: funcionalidades, configuración, pruebas y compilación. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Convenciones de código, documentación, ramas y commits. |
