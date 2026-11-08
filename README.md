@@ -74,6 +74,10 @@ Lanzar a mano, desde `main`, `infra.yml` con la opción `destroy`. Lo creado por
 
 Global Volcanism Program, Smithsonian Institution, [volcano.si.edu](https://volcano.si.edu). El uso es sin fines comerciales y citando la fuente; los términos están en [docs/fuente-de-datos.md](docs/fuente-de-datos.md).
 
+Cita de la base de datos:
+
+> Global Volcanism Program, 2026. [Database] Volcanoes of the World (v. 5.4.0; 7 Aug 2026). Distributed by Smithsonian Institution, compiled by Venzke, E. https://volcano.si.edu/database/
+
 ## Mapa de documentación
 
 | Documento | Contenido |
