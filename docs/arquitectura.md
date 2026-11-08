@@ -1,6 +1,6 @@
 # Explorador de Datos Serverless: arquitectura
 
-Proveedor: AWS. Las decisiones y sus alternativas están en [adr/README.md](adr/README.md); este documento solo las cita. Los valores marcados con *(verificar)* son supuestos que se confirman al implementar.
+Proveedor: AWS. Las decisiones y sus alternativas están en [adr/README.md](adr/README.md); este documento solo las cita.
 
 ## 1. Propósito y alcance
 
@@ -29,7 +29,7 @@ El sistema toma un CSV público, lo carga en una base de datos serverless y lo e
 | Id | Objetivo | Cómo se mide |
 |---|---|---|
 | O-1 | Cargar el 100 % de los registros conservando estructura y tipos. | El reporte cumple `rows_read = rows_written` con `rows_rejected = 0`, y el conteo en vivo de la consola de DynamoDB coincide con `rows_read`. |
-| O-2 | Consultar un registro mediante su identificador. | La API responde en menos de 300 ms (p95) con la función ya iniciada, medido en API Gateway. En arranque en frío se aplica el criterio de RNF-01. |
+| O-2 | Consultar un registro mediante su identificador. | La API responde en menos de 300 ms (p95) con la función ya iniciada, medido en API Gateway. |
 | O-3 | Costo cercano a cero. | DynamoDB se mantiene en su capa gratuita y ningún componente cobra por estar encendido; el resto cuesta centavos ([costos](detalle/despliegue.md#costos)). |
 | O-4 | Infraestructura reproducible y desechable. | La acción `apply` de `infra.yml` crea la pila `app` y la acción `destroy` la elimina, sin más paso manual que lanzarlas (buckets con `force_destroy = true`). Lo creado por el bootstrap se conserva aparte. |
 | O-5 | Trabajo en paralelo. | El frontend se desarrolla en local contra la API desplegada, con la llave; las funciones se prueban localmente sin cuenta de AWS. |
@@ -52,7 +52,7 @@ El sistema toma un CSV público, lo carga en una base de datos serverless y lo e
 
 | Id | Atributo | Criterio de aceptación |
 |---|---|---|
-| RNF-01 | Desempeño | Con la función ya iniciada, una consulta responde en menos de 300 ms (p95) medido en API Gateway. En arranque en frío se tolera hasta 1,5 s *(verificar)*. |
+| RNF-01 | Desempeño | Con la función ya iniciada, una consulta responde en menos de 300 ms (p95) medido en API Gateway. |
 | RNF-02 | Seguridad | Cada función tiene su propio rol IAM con las acciones mínimas sobre los recursos que usa. Ningún bucket es público. El sitio se sirve por HTTPS. Ninguna llave queda en el repositorio ni en los estáticos. La automatización usa una llave de larga duración de un usuario IAM, guardada en secretos de GitHub ([ADR-0012](adr/ADR-0012-pipelines-github-actions.md)). |
 | RNF-03 | Integridad de datos | Los tipos de cada columna se conservan (enteros y decimales como números, y texto como cadena). Ninguna fila se pierde en silencio: en una carga completa, cada una se escribe o queda en el reporte de rechazos. Si la carga termina en `FAILED`, el reporte lo indica y se repite. |
 | RNF-04 | Confiabilidad de la ingesta | Un fallo transitorio de la carga se reintenta automáticamente; un fallo persistente queda en el reporte `FAILED` o en los logs, y la carga se repite volviendo a subir el archivo. |
@@ -187,6 +187,7 @@ Limitaciones de la API: el listado no tiene orden garantizado, porque `Scan` rec
 |---|---|
 | [contracts/openapi.yaml](../contracts/openapi.yaml) | Contrato de la API con ejemplos. Ante cualquier diferencia, manda este archivo. Agregar campos opcionales es compatible; quitar, renombrar o cambiar un tipo exige acordarlo y actualizarlo primero. |
 | [frontend/README.md](../frontend/README.md) | Descripción del frontend, funcionalidades, tecnologías, configuración, ejecución, pruebas y compilación. |
+| [services/README.md](../services/README.md) | Funciones, estructura, validación local y empaquetado. |
 | [adr/README.md](adr/README.md) | Decisiones de arquitectura, con alternativas y motivo. |
 | [detalle/datos.md](detalle/datos.md) | Dataset, tabla, tipos, contrato de esquema y reporte. |
 | [detalle/errores.md](detalle/errores.md) | Formato y catálogos de errores, reintentos e idempotencia. |

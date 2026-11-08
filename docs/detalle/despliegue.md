@@ -25,8 +25,8 @@ Carpetas: `contracts/`, `services/` (`common`, `authorizer`, `api`, `loader`), `
 |---|---|
 | `scripts/bootstrap.sh` | Crea el bucket de estado y el usuario IAM de despliegue con su política. |
 | `scripts/deploy-policy.json` | Permisos del usuario de despliegue. |
-| `scripts/package-lambda.sh` | Arma el ZIP de cada función. `authorizer` usa `services/authorizer/src`; `api` y `loader` usan un solo `handler.mjs`, generado con esbuild, que incluye `services/common` y las dependencias de producción, salvo el AWS SDK del runtime. |
-| `scripts/check-lambda-bundle.mjs` | Carga el handler empaquetado de `api` o `loader` desde una carpeta sin `node_modules`, con un AWS SDK simulado. |
+| `scripts/package-lambda.sh` | Arma el ZIP de cada función. `authorizer` usa `services/authorizer/src`; `api` y `loader` usan un solo `handler.mjs`, generado con esbuild, que incluye `services/common` y las dependencias de producción, entre ellas el AWS SDK. |
+| `scripts/check-lambda-bundle.mjs` | Carga el handler empaquetado de `api` o `loader` desde una carpeta sin `node_modules`, para comprobar que el paquete trae todo lo que necesita. |
 
 ## Terraform
 
@@ -166,7 +166,7 @@ Se despliega en una cuenta nueva con el **Free plan** de AWS: incluye 100 USD en
 | DynamoDB | 25 WCU, 25 RCU y 25 GB, por región y por cuenta | 25 WCU, 25 RCU y unos 2 MB | Cero |
 | Lambda | 1 millón de peticiones y 400 000 GB-segundo al mes | Pocas invocaciones | Cero |
 | CloudFront | 1 TB y 10 millones de peticiones al mes, permanente | Muy bajo | Cero |
-| Parameter Store | Parámetros estándar sin costo adicional | 1 parámetro | Cero; el cifrado de `SecureString` está por confirmar *(verificar)* |
+| Parameter Store | Parámetros estándar sin costo adicional | 1 parámetro | Cero; el `SecureString` usa la clave administrada `aws/ssm`, sin cargo mensual, y como el authorizer relee el parámetro cada 5 minutos, el descifrado queda dentro de la capa gratuita de KMS |
 | API Gateway HTTP | A 1 USD por millón de llamadas; cubierto por créditos si no aplica una asignación gratuita | Miles de llamadas | Menos de 1 centavo |
 | S3 | Cubierto por créditos si no aplica una asignación gratuita | Unos pocos MB | Centavos |
 | CloudWatch Logs | 5 GB al mes entre ingesta, almacenamiento y consultas | Pocos MB, con retención de 7 días | Cero |

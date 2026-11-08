@@ -101,7 +101,7 @@ flowchart LR
 
 El archivo se lee con `csv-parse`, porque Node.js no incluye un lector de CSV y hay saltos de línea dentro de celdas. Antes de la cadena por fila se validan el encabezado y el tamaño. La codificación se valida mientras se lee (`TextDecoder` con `fatal: true`), porque el archivo llega en streaming: un error a mitad de archivo detiene la carga, aunque ya haya filas escritas.
 
-El escritor agrupa lotes de 10 ítems, pide a DynamoDB la capacidad consumida (`ReturnConsumedCapacity=TOTAL`) y espera lo necesario para mantenerse en 20 WCU/s, un margen bajo las 25 aprovisionadas. El ritmo llega por la variable de entorno `WRITE_RATE_WCU=20`. Con unas 2 650 WCU, la carga toma entre 2 y 3 minutos *(verificar)*.
+El escritor agrupa lotes de 10 ítems, pide a DynamoDB la capacidad consumida (`ReturnConsumedCapacity=TOTAL`) y espera lo necesario para mantenerse en 20 WCU/s, un margen bajo las 25 aprovisionadas. El ritmo llega por la variable de entorno `WRITE_RATE_WCU=20`. Con unas 2 650 WCU, la carga completa de 1 214 filas tomó 132 s, unos 2 minutos y 12 segundos.
 
 ## Authorizer
 

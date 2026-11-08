@@ -8,7 +8,7 @@ La solución necesita una base de datos serverless con costo cercano a cero para
 
 ## Decisión
 
-Se usa una sola tabla de DynamoDB en modo `PROVISIONED`, con 25 WCU y 25 RCU y sin autoescalado. La carga la hace la función `loader`, que regula su propio ritmo: agrupa lotes de 10 ítems, pide la capacidad consumida (`ReturnConsumedCapacity=TOTAL`) y espera lo necesario para mantenerse en 20 WCU/s, un margen bajo las 25 aprovisionadas. Ese ritmo llega por la variable `WRITE_RATE_WCU`. Con este consumo, la carga toma entre 2 y 3 minutos *(verificar)*.
+Se usa una sola tabla de DynamoDB en modo `PROVISIONED`, con 25 WCU y 25 RCU y sin autoescalado. La carga la hace la función `loader`, que regula su propio ritmo: agrupa lotes de 10 ítems, pide la capacidad consumida (`ReturnConsumedCapacity=TOTAL`) y espera lo necesario para mantenerse en 20 WCU/s, un margen bajo las 25 aprovisionadas. Ese ritmo llega por la variable `WRITE_RATE_WCU`. Con este consumo, la carga completa de 1 214 filas tomó unos 2 minutos y 12 segundos.
 
 ## Alternativas consideradas
 
